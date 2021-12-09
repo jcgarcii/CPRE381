@@ -72,42 +72,42 @@ component dffg_N is
 begin 
 
 --------- One bit: ------------------------------
-g_dffg_OF: dffg_N
+g_dffg_OF: dffg
     port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
              i_D => i_overflow,
              o_Q => o_overflow);
 
-g_dffg_br: dffg_N
+g_dffg_br: dffg
     port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
              i_D => i_branch,
              o_Q => o_branch);
 
-g_dffg_j: dffg_N
+g_dffg_j: dffg
     port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
              i_D => i_jump,
              o_Q => o_jump);
 --
-g_dffg_halt: dffg_N
+g_dffg_halt: dffg
     port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
              i_D => i_halt,
              o_Q => o_halt);
 
-g_dffg_jal: dffg_N
+g_dffg_jal: dffg
     port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
              i_D => i_jumpLink,
              o_Q => o_jumpLink);
 
-g_dffg_zero: dffg_N
+g_dffg_zero: dffg
     port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
@@ -115,21 +115,21 @@ g_dffg_zero: dffg_N
              o_Q => o_zero);
 --
 
-g_dffg_memReg: dffg_N
+g_dffg_memReg: dffg
     port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
              i_D => i_memReg,
              o_Q => o_memReg);
 
-g_dffg_WE_Reg: dffg_N
+g_dffg_WE_Reg: dffg
     port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
              i_D => i_weReg,
              o_Q => o_weReg);
 
-g_dffg_WE_Mem: dffg_N
+g_dffg_WE_Mem: dffg
     port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
@@ -173,6 +173,7 @@ gNBit_dffg_RD: dffg_N
              o_Q => o_readData);
 
 gNBit_dffg_WD: dffg_N
+    generic(N => 5)
     port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
