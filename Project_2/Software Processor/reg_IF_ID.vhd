@@ -6,7 +6,7 @@
 library IEEE; 
 use IEEE.std_logic_1164.all; 
 
-entity IF_ID_reg is 
+entity reg_IF_ID is 
     generic(N : integer := 32); 
     port(i_CLK          : in std_logic;
          i_RST          : in std_logic; 
@@ -16,9 +16,9 @@ entity IF_ID_reg is
          o_PC           : in std_logic_vector(N-1 downto 0); 
          o_instr        : in std_logic_vector(N-1 downto 0));
 
-end IF_ID_reg; 
+end reg_IF_ID; 
 
-architecture strucutal of IF_ID_reg is
+architecture strucutal of reg_IF_ID is
     component dffg_N is 
         generic(N : Integer := 32); 
         port(i_CLK        : in std_logic;     -- Clock inputs

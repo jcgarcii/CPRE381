@@ -6,7 +6,7 @@
 library IEEE; 
 use IEEE.std_logic_1164.all; 
 
-entity ID_EX_reg is 
+entity reg_ID_EX is 
     generic(N : integer := 32); 
     port(i_CLK      : in std_logic; 
          i_RST      : in std_logic; 
@@ -30,9 +30,9 @@ entity ID_EX_reg is
          o_inst15to11   : out std_logic_vector(4 downto 0); 
          o_inst20to16  : out std_logic_vector(4 downto 0));
 
-end ID_EX_reg; 
+end reg_ID_EX; 
 
-architecture strucutal of ID_EX_reg is 
+architecture strucutal of reg_ID_EX is 
 
     component dffg_N is 
         generic(N : Integer := 32); 
