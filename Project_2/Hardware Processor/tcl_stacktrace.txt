@@ -1,0 +1,35 @@
+Wed Oct 20 14:46:31 CDT 2021
+Trace back: can't read "_ordery(3)": no such element in array
+    while executing
+"foreach tb $_ordery($y) {
+	    lappend orderx($tbX($tb)) $tb
+	}"
+    (object "::.dockbar" method "::mtiwidgets::Dockbar::redoPack" body line 33)
+    invoked from within
+"redoPack {Configure Event}"
+    ("eval" body line 1)
+    invoked from within
+"eval $args"
+    (object "::.dockbar" method "::mtiwidgets::Dockbar::_delayedEval" body line 3)
+    invoked from within
+"::.dockbar _delayedEval redoPack {Configure Event}"
+    (in namespace inscope "::mtiwidgets::Dockbar" script line 1)
+    invoked from within
+"namespace inscope ::mtiwidgets::Dockbar ::.dockbar _delayedEval redoPack {Configure Event}"
+    ("after" script)
+  <2:/usr/local/mentor/questasim/linux_x86_64/tk8.6/bgerror.tcl:106: ::tkerror {can't read "_ordery(3)": no such element in array}
+  <1:eval:1: ::tk::dialog::error::bgerror {can't read "_ordery(3)": no such element in array}
+Sun Nov 07 20:17:33 CST 2021
+Trace back: bad option "scan": must be annotate, bbox, cget, compare, configure, count, decreaseindent, delete, dump, edit, fold, get, index, increaseindent, insert, keywords, loadlexer, margin, mark, marker, property, scisearch, search, see, ssm, style, tag, textwidth, version, xview, yview, zoom, zoomin, or zoomout
+    while executing
+"$w scan mark $x $y"
+    (procedure "::scintilla::TextScanMark" line 3)
+    invoked from within
+"::scintilla::TextScanMark .main_pane.source.interior.cs.body.srcobj.sci 375 539"
+    invoked from within
+"if {!$tk_strictMotif} {
+        ::scintilla::TextScanMark .main_pane.source.interior.cs.body.srcobj.sci 375 539
+    }"
+    (command bound to event)
+  <2:/usr/local/mentor/questasim/linux_x86_64/tk8.6/bgerror.tcl:106: ::tkerror {bad option "scan": must be annotate, bbox, cget, compare, configure, count, decreaseindent, delete, dump, edit, fold, get, index, increaseindent, insert, keywords, loadlexer, margin, mark, marker, property, scisearch, search, see, ssm, style, tag, textwidth, version, xview, yview, zoom, zoomin, or zoomout}
+  <1:eval:1: ::tk::dialog::error::bgerror {bad option "scan": must be annotate, bbox, cget, compare, configure, count, decreaseindent, delete, dump, edit, fold, get, index, increaseindent, insert, keywords, loadlexer, margin, mark, marker, property, scisearch, search, see, ssm, style, tag, textwidth, version, xview, yview, zoom, zoomin, or zoomout}

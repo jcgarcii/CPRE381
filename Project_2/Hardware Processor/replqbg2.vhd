@@ -1,0 +1,49 @@
+-------------------------------------------------------------------------
+-- Joseph Zambreno
+-- Department of Electrical and Computer Engineering
+-- Iowa State University
+-------------------------------------------------------------------------
+
+
+-- xorg2.vhd
+-------------------------------------------------------------------------
+-- DESCRIPTION: This file contains an implementation of a 2-input XOR 
+-- gate.
+--
+--
+-- NOTES:
+-- 8/19/16 by JAZ::Design created.
+-- 1/16/19 by H3::Changed name to avoid name conflict with Quartus 
+--         primitives.
+-------------------------------------------------------------------------
+
+library IEEE;
+use IEEE.std_logic_1164.all;
+
+entity replqbg is
+  generic(N: integer := 32); 
+  port(i_A          : in std_logic_vector(N-1 downto 0);
+       o_F          : out std_logic_vector(N-1 downto 0));
+
+end replqbg;
+
+architecture structural of replqbg is
+
+begin
+	gRIPPLE0 : for i in 0 to 7 generate 
+		o_F(i) <= i_A(i); 
+	end generate gRIPPLE0; 
+
+	gRIPPLE1 : for i in 0 to 7 generate 
+		o_F(i+8) <= i_A(i); 
+	end generate gRIPPLE1; 
+	
+	gRIPPLE2 : for i in 0 to 7 generate 
+		o_F(i+16) <= i_A(i); 
+	end generate gRIPPLE2; 
+
+	gRIPPLE3 : for i in 0 to 7 generate 
+		o_F(i+24) <= i_A(i); 
+	end generate gRIPPLE3; 
+
+end structural;
