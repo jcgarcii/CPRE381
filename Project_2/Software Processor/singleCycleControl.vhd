@@ -3,21 +3,21 @@ use IEEE.std_logic_1164.all;
 
 entity singleCycleControl is
   port(
-		opcode		: in std_logic_vector(5 downto 0);
-		func		: in std_logic_vector(5 downto 0);
-	        halt            : out std_logic;
-                signExt         : out std_logic;
-		link		: out std_logic; --15
-		regDest		: out std_logic; --12
-		ALUSrc		: out std_logic_vector(1 downto 0); --11
-		MemReg		: out std_logic; --10
-		RegWr		: out std_logic; --9
-		MemRd		: out std_logic; --8
-		MemWr		: out std_logic; --7
-		Branch		: out std_logic; --6
+		opcode			: in std_logic_vector(5 downto 0);
+		func			: in std_logic_vector(5 downto 0);
+	    halt            : out std_logic;
+        signExt         : out std_logic;
+		link			: out std_logic; --15
+		regDest			: out std_logic; --12
+		ALUSrc			: out std_logic_vector(1 downto 0); --11
+		MemReg			: out std_logic; --10
+		RegWr			: out std_logic; --9
+		MemRd			: out std_logic; --8
+		MemWr			: out std_logic; --7
+		Branch			: out std_logic; --6
 		BEQ             : out std_logic; --5
-		jump		: out std_logic_vector(1 downto 0); --4
-		ALUop		: out std_logic_vector(2 downto 0));
+		jump			: out std_logic_vector(1 downto 0); --4
+		ALUop			: out std_logic_vector(2 downto 0));
 		
 
 

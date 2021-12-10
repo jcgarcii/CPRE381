@@ -152,7 +152,7 @@ gNBit_dffg_RD: dffg_N
              o_Q => o_readData);
 
 gNBit_dffg_WD: dffg_N
-    generic(N => 5)
+    generic map(N => 5)
     port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,

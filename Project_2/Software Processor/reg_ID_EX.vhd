@@ -72,7 +72,7 @@ begin
 
 --------- CONTROL STUFF
     gNBit_dffg_opCODE: dffg_N
-    generic(N => 6)
+    generic map(N => 6)
         port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
@@ -80,7 +80,7 @@ begin
              o_Q => o_opcode);
 
     gNBit_dffg_functCODE: dffg_N
-        generic(N => 6)
+        generic map(N => 6)
         port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
@@ -88,7 +88,7 @@ begin
              o_Q => o_funct);
      
     gNBit_dffg_functCODE: dffg_N
-        generic(N => 15)
+        generic map(N => 15)
         port map(i_CLK => i_CLK, 
                   i_RST=> i_RST, 
                   i_WE => i_WE,
@@ -110,7 +110,7 @@ begin
              o_Q => o_signExt);
 --15 or 20
     gNBit_dffg_15to11: dffg_N
-    generic(N => 5)
+    generic map(N => 5)
         port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
@@ -118,7 +118,7 @@ begin
              o_Q => o_inst15to11);
 
     gNBit_dffg_20to16: dffg_N
-    generic(N => 5)
+    generic map(N => 5)
         port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,

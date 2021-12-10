@@ -185,6 +185,15 @@ architecture structure of MIPS_Processor is
           q             : out std_logic_vector((DATA_WIDTH-1) downto 0));
     end component;
 
+  component PC is 
+    generic(N : integer := 32); 
+	  port(iCLK			: in std_logic; 
+	       iWE			: in std_logic;
+	       iRST			: in std_logic; 
+	       iD			  : in std_logic_vector(N-1 downto 0);	
+         oQ			  : out std_logic_vector(N-1 downto 0)); 
+  end  component;
+
 --General components
 
 component regFile is
@@ -303,6 +312,15 @@ component inst_fetch is
 		oAddr			: out std_logic_vector(N-1 downto 0));	
 
 end  component;
+
+component AddSub_N is 
+  generic(N: integer := 32);
+   port(iA	  		  : in std_logic_vector(N-1 downto 0);	
+	      iB		  	  : in std_logic_vector (N-1 downto 0); 	
+	      nAdd_Sub		: in std_logic;
+	      oSum			  : out std_logic_vector(N-1 downto 0);
+	      oCarry			: out std_logic);
+end component; 
 
 --ALU components
 
@@ -455,6 +473,13 @@ begin
    with iInstLd select
    s_IMemAddr <= s_NextInstAddr when '0',
    iInstAddr when others;
+
+   g_PC : PC  
+    port map (iCLK			=> iCLK,  
+              iWE			  => '1',
+              iRST			=> iRST,
+              iD			 	=> s_WB_PC_next,
+              oQ			  => s_NextInstAddr);  
    
    IMem: mem
         generic map(ADDR_WIDTH => 10,
@@ -464,6 +489,27 @@ begin
                 data => iInstExt,
                 we   => iInstLd,
                 q    => s_Inst);
+
+  g_PCplus4 :  AddSub_N  
+     port(iA			    =>  s_IMemAddr,    	
+          iB			    =>  x"00000004",	
+          nAdd_Sub		=>  '0', 
+          oSum			  =>  s_IF_PC, 
+          oCarry			=>  s_X1); 
+
+  g_IF_ID : reg_IF_ID 
+      port map(i_CLK          : in std_logic;
+              i_RST          : in std_logic; 
+              i_WE           : in std_logic; 
+              i_PC           : in std_logic_vector(N-1 downto 0); 
+              i_instr        : in std_logic_vector(N-1 downto 0); 
+              o_PC           : in std_logic_vector(N-1 downto 0); 
+              o_instr        : in std_logic_vector(N-1 downto 0));
+
+ ---------------------------------------------------------------------------------------------------------------------
+ ------------------------ID STAGE-------------------------------------------------------------------------------------
+ --------------------------------------------------------------------------------------------------------------------
+s_control :              
  
   
 

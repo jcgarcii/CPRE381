@@ -12,7 +12,7 @@ entity PC is
 	       iWE			: in std_logic;
 	       iRST			: in std_logic; 
 	       iD			: in std_logic_vector(N-1 downto 0);	
-               oQ			: out std_logic_vector(N-1 downto 0)); 
+           oQ			: out std_logic_vector(N-1 downto 0)); 
 
 end  PC;
 

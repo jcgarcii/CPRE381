@@ -23,13 +23,12 @@ end  inst_fetch;
 
 architecture structure of inst_fetch is
 
-
 	component PC is 
 	 port(iCLK			: in std_logic; 
 	       iWE			: in std_logic;
 	       iRST			: in std_logic; 
 	       iD			: in std_logic_vector(N-1 downto 0);	
-               oQ			: out std_logic_vector(N-1 downto 0)); 	
+           oQ			: out std_logic_vector(N-1 downto 0)); 	
 	end component;
 
 	component mux2t1_N is 
@@ -70,7 +69,7 @@ begin
 	     	      iWE		=> 	iMEM_WE, 
 	       	      iRST		=> 	iRST, 
 	              iD	 	=> 	s_jumpRE, --Jump Mux selector (PC + 4 by default) 	
-                      oQ		=>	sPC); 
+                 oQ		=>	sPC); 
 	
 		-- Case 1: Standard +4 incrementation --
 	gPC_4	: adder_N  
