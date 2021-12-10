@@ -94,6 +94,8 @@ architecture structure of MIPS_Processor is
     -- Control -- 
   signal s_ID_opCode    : std_logic_vector(5 downto 0); 
   signal s_ID_funct     : std_logic_vector(5 downto 0); 
+  signal s_ID_Halt      : std_logic;
+  signal s_ID_extend    : std_logic; 
   signal s_ID_control   : std_logic_vector(14 downto 0);
   
   --EX Stage: 
@@ -491,25 +493,120 @@ begin
                 q    => s_Inst);
 
   g_PCplus4 :  AddSub_N  
-     port(iA			    =>  s_IMemAddr,    	
+     port map (iA			    =>  s_IMemAddr,    	
           iB			    =>  x"00000004",	
           nAdd_Sub		=>  '0', 
           oSum			  =>  s_IF_PC, 
           oCarry			=>  s_X1); 
 
   g_IF_ID : reg_IF_ID 
-      port map(i_CLK          : in std_logic;
-              i_RST          : in std_logic; 
-              i_WE           : in std_logic; 
-              i_PC           : in std_logic_vector(N-1 downto 0); 
-              i_instr        : in std_logic_vector(N-1 downto 0); 
-              o_PC           : in std_logic_vector(N-1 downto 0); 
-              o_instr        : in std_logic_vector(N-1 downto 0));
+      port map(i_CLK          => iCLK,
+              i_RST           => iRST,  
+              i_WE            => '1',  
+              i_PC            => s_IF_PC,  
+              i_instr         => s_Inst,  
+              o_PC            => s_ID_PC,  
+              o_instr         => s_ID_instr); 
 
  ---------------------------------------------------------------------------------------------------------------------
  ------------------------ID STAGE-------------------------------------------------------------------------------------
  --------------------------------------------------------------------------------------------------------------------
-s_control :              
+        -- Instruciton Setup: 
+          s_ID_funct(5 downto 0) <= s_ID_instr(5 downto 0); 
+          s_ID_opCode(5 downto 0) <= s_ID_instr(31 downto 26); 
+          s_ID_imm16 (15 downto 0) <= s_ID_instr(15 downto 0); 
+ -- 15 : jal 
+-- 14 : register dest
+-- 13 : ALU Src 1
+-- 12 : ALU Src 0
+-- 11 : Mem to reg 
+-- 10 : Register Write 
+-- 9  : Mem RD 
+-- 8  : Mem Wr 
+-- 7  : Branch 
+-- 6  : BEQ
+-- 5  : jr 
+-- 4  : j
+-- 3  : AlU Op 3
+-- 2   : ALU op 2 
+-- 1  : ALU op 1
+-- 0  : ALU op 0 
+---Other Control Signals--
+--   : sign EXT 
+--   : HALT 
+ g_control : singleCycleControl
+    port map (
+		  opcode			  => s_ID_opCode, 
+		  func			    => s_ID_funct, 
+	    halt          => s_ID_Halt,
+      signExt       => s_ID_extend, 
+		  link			    => s_ID_control(14), 
+		  regDest			  => s_ID_control(13), 
+		  ALUSrc			  => s_ID_control(12 downto 11),  
+		  MemReg			  => s_ID_control(10) 
+		  RegWr			    => s_ID_control(9),  
+		  MemRd			    => s_ID_control(8),  
+		  MemWr			    => s_ID_control(7), 
+		  Branch			  => s_ID_control(6) 
+		  BEQ           => s_ID_control(5), 
+		  jump			    => s_ID_control(4 downto 3), 
+		  ALUop			    => s_ID_control(2 downto 0)); 
+
+  g_regFile : regFile
+    port map (iCLK        	  => iCLK,      -- Clock input
+        iRST        	  => iRST,      -- Reset input
+        iWRN        	  => s_RegWrAddr,     
+        iWE	    	      => s_ID_control(9),  
+        iWD          	  => s_RegWrData,    
+        iDP0	     	    => s_ID_instr(25 downto 0), 
+        iDP1	      	  => s_ID_instr(20 downto 0),  
+        oDP0	      	  => s_ID_reg_RS,  
+        oDP1          	=> s_ID_reg_RT); 
+
+  g_signExtend: extend16t32
+	  port map(i_S      => s_ID_extend,    
+              i_A      => s_ID_imm16,  
+              o_O      => s_ID_imm32);
+
+  -- in the event of a jump, we extend from 26 to 28 bits:  
+  s_ID_jumpAddr(0) <= '0';
+  s_ID_jumpAddr(1) <= '1'; 
+  s_ID_jumpAddr(27 downto 2) <= s_ID_instr(25 downto 0); 
+  s_ID_jumpAddr(31 downto 28) <= s_ID_PC(31 downto 28); -- these bits should be empty 
+
+  g_ID_EX: reg_ID_EX
+    port(i_CLK            => iCLK, 
+          i_RST           => iRST,  
+          i_WE            => '1',  
+      -----VECTOR Feed-in: -----0
+          i_PC            => s_ID_PC,  
+          i_RS            => s_ID_reg_RS, 
+          i_RT            => s_ID_reg_RT,  
+          i_control       => s_ID_control,     
+          i_jumpAddr      => s_ID_jumpAddr,  
+          i_signExt       => s_ID_imm32,  
+          i_inst15to11    => s_ID_instr(20 downto 16),  
+          i_inst20to16    => s_ID_instr(15 downto 11),  
+      --Vector Out Feed ---------1
+          o_PC            => s_EX_PC,  
+          o_RS            => s_EX_reg_RS,  
+          o_RT            => s_EX_reg_RT, 
+          o_control       => s_EX_control,     
+          o_jumpAddr      => s_EX_jumpAdr, 
+          o_signExt       => s_EX_imm32,  
+          o_inst15to11    => s_EX_iRS, 
+          o_inst20to16    => s_EX_iRT);
+
+ ---------------------------------------------------------------------------------------------------------------------
+ ------------------------EX STAGE-------------------------------------------------------------------------------------
+ --------------------------------------------------------------------------------------------------------------------
+  
+      
+    
+  
+      
+  
+   
  
   
 
@@ -576,11 +673,7 @@ s_control :
        oDP0	      	=> s_oRS,
        oDP1          	=> s_DMemData); 
 
-  signExtend: extend16t32
-	port map(
-              i_S      => s_signExt,    
-              i_A     => s_Inst(15 downto 0),  
-              o_O      => s_extImm);
+ 
 
 
 replext: extend8t32
