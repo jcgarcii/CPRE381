@@ -3,14 +3,14 @@ use IEEE.std_logic_1164.all;
 
 entity ForwardingUnit is
   port(
-		i_RS		: in std_logic_vector(4 downto 0);
-		i_RT		: in std_logic_vector(4 downto 0);
-		i_EXMEM_RD	: in std_logic_vector(4 downto 0);
-		i_MEMWB_RD	: in std_logic_vector(4 downto 0);
-		i_EXMEM_regwr	: in std_logic;
-		i_MEMWB_regWr	: in std_logic;
-		o_RS_select	: out std_logic;
-		o_RT_select	: out std_logic);
+		i_RS				: in std_logic_vector(4 downto 0);
+		i_RT				: in std_logic_vector(4 downto 0);
+		i_EXMEM_RD			: in std_logic_vector(4 downto 0);
+		i_MEMWB_RD			: in std_logic_vector(4 downto 0);
+		i_EXMEM_regwr		: in std_logic;
+		i_MEMWB_regWr		: in std_logic;
+		o_RS_select			: out std_logic;
+		o_RT_select			: out std_logic);
 
 end ForwardingUnit;
 

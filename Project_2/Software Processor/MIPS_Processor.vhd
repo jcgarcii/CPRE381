@@ -72,7 +72,11 @@ architecture structure of MIPS_Processor is
   
   -- Instruction Fetcher Signals: --- 
   signal s_branchEN	: std_logic;
-*/
+
+  -- Other signals: ----////These are for additional inputs that don't matter (ALU); 
+  signal x1, x2, x3 : std_logic; 
+
+  */
   ------- STAGE SIGNALS: ---------
   --IF Stage: 
   signal s_IF_PC    : std_logic_vector(N-1 downto 0); 
@@ -102,8 +106,8 @@ architecture structure of MIPS_Processor is
     signal s_EX_jumpAddr_final  : std_logic_vector(N-1 downto 0); 
     signal s_EX_branchAddr      : std_logic_vector(N-1 downto 0); 
     --Register Stuff
-    signal s_EX_iRS             : std_logic_vector(N-1 downto 0);
-    signal s_EX_iRT             : std_logic_vector(N-1 downto 0); 
+    signal s_EX_iRS             : std_logic_vector(4 downto 0);
+    signal s_EX_iRT             : std_logic_vector(4 downto 0); 
     signal s_EX_reg_RS          : std_logic_vector(N-1 downto 0); 
     signal s_EX_reg_RT          : std_logic_vector(N-1 downto 0); 
     signal s_EX_reg_DST         : std_logic_vector(4 downto 0); 
@@ -124,7 +128,49 @@ architecture structure of MIPS_Processor is
     signal s_EX_control_bramch    : std_logic; 
     signal s_EX_control_halt      : std_logic; 
     signal s_EX_control_regWr     : std_logic; 
-  
+
+  --MEM Stage:
+    --General: 
+    signal s_MEM_PC             : std_logic_vector(N-1 downto 0); 
+    --Address/I-Type: 
+    signal s_MEM_jumpAddr_final : std_logic_vector(N-1 downto 0); 
+    signal s_MEM_branchAddr     : std_logic_vector(N-1 downto 0); 
+    --Register Stuff: 
+    signal s_MEM_reg_Wr         : std_logic_vector(4 downto 0); 
+    signal s_MEM_reg_RD         : std_logic_vector(N-1 downto 0); 
+    --ALU Stuff:
+    signal s_MEM_ALU_out        : std_logic_vector(N-1 downto 0); 
+    signal s_MEM_ALU_branch     : std_logic;
+    signal s_MEM_ALU_OF         : std_logic; 
+    --Control stuff: 
+    signal s_MEM_control_j      : std_logic_vector(1 downto 0); 
+    signal s_MEM_control_jal    : std_logic;
+    signal s_MEM_control_memToReg : std_logic;
+    signal s_MEM_control_DMem_WR  : std_logic; 
+    signal s_MEM_control_branch   : std_logic; 
+    signal s_MEM_contorl_halt     : std_logic; 
+    signal s_MEM_control_zero     : std_logic;    
+
+  --WB Stage:
+    --General:
+    signal s_WB_PC              : std_logic_vector(N-1 downto 0); 
+    --Address/I-Type: 
+    signal s_WB_jumpAddr_final  : std_logic_vector(N-1 downto 0); 
+    signal s_WB_branchAddr      : std_logic_vector(N-1 downto 0); 
+    signal s_WB_PC_next         : std_logic_vector(N-1 downto 0); 
+    --Register Stuff: 
+    signal s_WB_reg_RED         : std_logic_vector(N-1 downto 0);
+    signal s_WB_reg_memToReg    : std_logic_vector(N-1 downto 0);  
+    --ALU stuff:
+    signal s_WB_ALU_out         : std_logic_vector(N-1 downto 0); 
+    --Control: 
+    signal s_WB_control_j       : std_logic_vector(1 downto 0);
+    signal s_WB_control_jal     : std_logic;
+    signal s_WB_control_memToReg  : std_logic;
+    signal s_WB_control_zero      : std_logic;
+    signal s_WB_control_PC_source   : std_logic; 
+    
+
   ------------------------------------------------------------------------------------------
   -------------Component declaration: -----------------------------------------------------
   -----------------------------------------------------------------------------------------
@@ -132,11 +178,11 @@ architecture structure of MIPS_Processor is
     generic(ADDR_WIDTH : natural:= 32;
             DATA_WIDTH : natural := 10);
     port(
-          clk          : in std_logic;
-          addr         : in std_logic_vector((ADDR_WIDTH-1) downto 0);
-          data         : in std_logic_vector((DATA_WIDTH-1) downto 0);
-          we           : in std_logic := '1';
-          q            : out std_logic_vector((DATA_WIDTH-1) downto 0));
+          clk           : in std_logic;
+          addr          : in std_logic_vector((ADDR_WIDTH-1) downto 0);
+          data          : in std_logic_vector((DATA_WIDTH-1) downto 0);
+          we            : in std_logic := '1';
+          q             : out std_logic_vector((DATA_WIDTH-1) downto 0));
     end component;
 
 --General components
@@ -144,14 +190,14 @@ architecture structure of MIPS_Processor is
 component regFile is
 
   generic(N : Integer := 32); 
-  port(iCLK        	: in std_logic;     -- Clock input
-       iRST        	: in std_logic;     -- Reset input
-       iWRN        	: in std_logic_vector(4 downto 0);    
-       iWE	    	: in std_logic; 
+  port(iCLK        	  : in std_logic;     -- Clock input
+       iRST        	  : in std_logic;     -- Reset input
+       iWRN        	  : in std_logic_vector(4 downto 0);    
+       iWE	    	    : in std_logic; 
        iWD          	: in std_logic_vector(31 downto 0);    
-       iDP0	     	: in std_logic_vector(4 downto 0);
-       iDP1	      	: in std_logic_vector(4 downto 0); 
-       oDP0	      	: out std_logic_vector(31 downto 0); 
+       iDP0	     	    : in std_logic_vector(4 downto 0);
+       iDP1	      	  : in std_logic_vector(4 downto 0); 
+       oDP0	      	  : out std_logic_vector(31 downto 0); 
        oDP1          	: out std_logic_vector(31 downto 0)); 
 
 end component;
@@ -159,14 +205,14 @@ end component;
 
   component extend16t32 is
   port(i_S          : in std_logic;
-       i_A         : in std_logic_vector(15 downto 0);
+       i_A          : in std_logic_vector(15 downto 0);
        o_O          : out std_logic_vector(31 downto 0));
 
   end component;
 
 component extend8t32 is
   port(i_S          : in std_logic;
-       i_A         : in std_logic_vector(7 downto 0);
+       i_A          : in std_logic_vector(7 downto 0);
        o_O          : out std_logic_vector(31 downto 0));
 
 end component;
@@ -183,20 +229,20 @@ end component;
   component mux2t1_N is
   generic(N : integer := 32);
     port(i_S          : in std_logic;
-       i_D0         : in std_logic_vector(N-1 downto 0);
-       i_D1         : in std_logic_vector(N-1 downto 0);
-       o_O          : out std_logic_vector(N-1 downto 0));
+       i_D0           : in std_logic_vector(N-1 downto 0);
+       i_D1           : in std_logic_vector(N-1 downto 0);
+       o_O            : out std_logic_vector(N-1 downto 0));
 
   end component;
 
 component mux4t1 is
 
-  port(i_S  : in std_logic_vector (1 downto 0);
-	i_R0 : in std_logic_vector(31 downto 0);
-	i_R1 : in std_logic_vector(31 downto 0);
-	i_R2 : in std_logic_vector(31 downto 0);
-	i_R3 : in std_logic_vector(31 downto 0);
-	o_Y : out std_logic_vector(31 downto 0));
+  port(i_S          : in std_logic_vector (1 downto 0);
+	i_R0              : in std_logic_vector(31 downto 0);
+	i_R1              : in std_logic_vector(31 downto 0);
+	i_R2              :  in std_logic_vector(31 downto 0);
+	i_R3              : in std_logic_vector(31 downto 0);
+	o_Y               : out std_logic_vector(31 downto 0));
 
 end component;
 
@@ -210,21 +256,21 @@ end component;
 --Control components
 component singleCycleControl is
   port(
-		opcode		: in std_logic_vector(5 downto 0);
-		func		: in std_logic_vector(5 downto 0);
-	        halt            : out std_logic;
-                signExt         : out std_logic;
-		link		: out std_logic; --15
-		regDest		: out std_logic; --12
-		ALUSrc		: out std_logic_vector(1 downto 0); --11
-		MemReg		: out std_logic; --10
-		RegWr		: out std_logic; --9
-		MemRd		: out std_logic; --8
-		MemWr		: out std_logic; --7
-		Branch		: out std_logic; --6
+		opcode		      : in std_logic_vector(5 downto 0);
+		func		        : in std_logic_vector(5 downto 0);
+	  halt            : out std_logic;
+    signExt         : out std_logic;
+		link		        : out std_logic; --15
+		regDest		      : out std_logic; --12
+		ALUSrc		      : out std_logic_vector(1 downto 0); --11
+		MemReg		      : out std_logic; --10
+		RegWr		        : out std_logic; --9
+		MemRd		        : out std_logic; --8
+		MemWr		        : out std_logic; --7
+		Branch		      : out std_logic; --6
 		BEQ             : out std_logic; --5
-		jump		: out std_logic_vector(1 downto 0); --4
-		ALUop		: out std_logic_vector(2 downto 0)); -- 3-0
+		jump		        : out std_logic_vector(1 downto 0); --4
+		ALUop		        : out std_logic_vector(2 downto 0)); -- 3-0
 
 end component;
 
