@@ -58,25 +58,6 @@ architecture structure of MIPS_Processor is
  
   --Dummy Signal: 
   signal s_x    : std_logic; 
-  /* Single Cycle Signals: 
-  -- control signals
-  signal  s_signExt, s_link, s_use_shamt, s_regDest, s_memReg, s_branch, s_memRD, s_memWR, s_BEQ  : std_logic;
-  signal s_opcode, s_func : std_logic_vector(5 downto 0) := "000000";
-  signal s_ALUCtl : std_logic_vector(2 downto 0) := "000";
-
-  signal s_writeReg: std_logic_vector(4 downto 0);
-  signal s_oRS,s_oRT: std_logic_vector(31 downto 0);
-  signal s_extImm,s_replExt: std_logic_vector(31 downto 0);
-  signal s_muxToALU,s_repl: std_logic_vector(31 downto 0);
-
-  signal s_logicCtrl,s_jump,s_ALUSrc: std_logic_vector(1 downto 0);
-  signal s_arithCtl,s_shiftDir,s_add_sub,s_o_signed,s_zero: std_logic;
-  signal s_toEXT8: std_logic_vector(7 downto 0);
-  
-  -- Instruction Fetcher Signals: --- 
-  signal s_branchEN	: std_logic;
-
-  */
   ------- STAGE SIGNALS: ---------
   --IF Stage: 
   signal s_IF_PC    : std_logic_vector(N-1 downto 0); 
@@ -184,9 +165,7 @@ architecture structure of MIPS_Processor is
     signal s_WB_control_regWr     : std_logic; 
     signal s_WB_control_zero      : std_logic;
     signal s_WB_control_halt      : std_logic;
-    signal s_WB_control_PC_source   : std_logic; 
     
-
   ------------------------------------------------------------------------------------------
   -------------Component declaration: -----------------------------------------------------
   -----------------------------------------------------------------------------------------
@@ -641,12 +620,10 @@ begin
   -- Branch Calculation: 
       g_branchOffset  :  AddSub_N  
           port map (iA			    =>  s_EX_PC,    	
-                    iB			    =>  s_EX_imm32_MUX,	
+                    iB			    =>  s_EX_imm32_MUX\,	
                     nAdd_Sub		=>  '0', 
                     oSum			  =>  s_EX_branchAddr, 
                     oCarry			=>  s_x); 
-    -- ALU Bits: 
-    s_EX_ALU_shamt            <= s_EX_imm32(10 downto 6); 
     
     -- Jump mux 
       g_jump_mux2t1   : mux2t1_N
@@ -657,14 +634,15 @@ begin
                   o_O      => s_EX_jumpAddr_final);
 
     -- ALU Operation:
-   g_ALUSrc  : mux2t1_N
-   port map(
-               i_S      => s_EX_ALU_Src,    
-               i_D0     => s_EX_reg_RT, 
-               i_D1     => s_EX_imm32,  
-               o_O      => s_EX_imm_mux);
-
-    g_ALUcontrol: ALUControl
+    Mux_regFileToALU: mux4t1
+       port map(i_S => s_EX_ALU_Src,
+      	i_R0 => s_EX_reg_RT,
+	      i_R1 => s_EX_imm32, 
+      	i_R2 => s_EX_ALU_repl,
+      	i_R3 => x"00000000",
+      	o_Y => s_EX_imm_mux);
+    
+        g_ALUcontrol: ALUControl
       port map(
               func		=> s_EX_funct,
               opCode		=> s_EX_opcode,
@@ -685,6 +663,15 @@ begin
           o_OF			   => s_EX_ALU_OF, 
           o_Zero			 => s_EX_ALU_zero, 
           o_ALUOUT		 => s_EX_ALU_out); 
+
+    replext: extend8t32
+      port map(i_S          =>  s_ID_extend,
+       i_A         =>  s_Insts_EX_instr(23 downto 16),
+       o_O          =>  s_EX_ALU_replExt);
+
+  repl8t32: replqbg
+    port map(i_A          => s_EX_ALU_replExt,
+             o_F          => s_EX_ALU_repl);
 
      g_reg_DST : mux2t1_N
         generic map(N => 5)
@@ -727,12 +714,12 @@ begin
             o_overflow          => s_MEM_ALU_OF, 
             o_branch            => s_MEM_control_branch,
             o_jump              => s_MEM_control_j,
-            o_halt             => s_MEM_control_halt, 
-            o_jumpLink        => s_MEM_control_jal, 
-            o_zero            => s_MEM_ALU_branch, 
-            o_memReg          => s_MEM_control_memToReg,
-            o_weReg           => s_MEM_control_regWr, 
-            o_weMem           => s_MEM_control_DMem_WR,
+            o_halt              => s_MEM_control_halt, 
+            o_jumpLink          => s_MEM_control_jal, 
+            o_zero              => s_MEM_ALU_branch, 
+            o_memReg            => s_MEM_control_memToReg,
+            o_weReg             => s_MEM_control_regWr, 
+            o_weMem             => s_MEM_control_DMem_WR,
             --vector out feeds 
             o_PC              => s_MEM_PC, -- next instruction
             o_branchAddr      => s_MEM_branchAddr, -- branch address
@@ -787,8 +774,6 @@ g_MEM_WB : reg_MEM_WB
           o_ALU_out     => s_WB_ALU_out,  
           o_readData    => s_WB_reg_RED,  
           o_writeReg    => s_RegWrAddr); 
-
-
 ---------------------------------------------------------------------------------------------------------------------
 ------------------------WB STAGE-------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------------------
@@ -823,84 +808,5 @@ g_jump : mux2t1_N
       
 oALUOut <= s_WB_ALU_out; 
 
-/* signle cycle process: 
-
-  -- TODO: Ensure that s_Halt is connected to an output control signal produced from decoding the Halt instruction (Opcode: 01 0100)
-  -- TODO: Ensure that s_Ovfl is connected to the overflow output of your ALU
-
-  -- TODO: Implement the rest of your processor below this comment! 
-
-
-		
-  Mux_ImemToRegFile: mux2t1_5
-	port map(
-              i_S      => s_regDest,    
-              i_D0     => s_Inst(20 downto 16), 
-              i_D1     => s_Inst(15 downto 11),  
-              o_O      => s_RegWrAddr); 
-
-
- 
-
-
-replext: extend8t32
-  port map(i_S          =>  s_signExt,
-       i_A         =>  s_Inst(23 downto 16),
-       o_O          =>  s_replExt);
-
-  repl8t32: replqbg
-    port map(i_A          => s_replExt,
-             o_F          => s_repl);
-
-  control: singleCycleControl 
-  port map(	opcode		=> s_Inst(31 downto 26),
-		func		=> s_Inst(5 downto 0),
-	        halt            => s_halt,
-                signExt         => s_signExt,
-		link		=> s_link, --15
-		regDest		=> s_regDest, --12
-		ALUSrc		=> s_ALUSrc, --11
-		MemReg		=> s_memReg, --10
-		RegWr		=> s_RegWr, --9
-		MemRd		=> s_memRd, --8
-		MemWr		=> s_DMemWr, --7
-		Branch		=> s_branch, --6
-		BEQ             => s_BEQ, --5
-		jump		=> s_jump, --4
-		ALUop		=> s_AlUCtl);
-
---TODO
-
-
-
---TODO make into 4t1
-  Mux_regFileToALU: mux4t1
-     port map(i_S => s_ALUSrc,
-	i_R0 => s_DMemData,
-	i_R1 => s_extImm, 
-	i_R2 => s_repl,
-	i_R3 => x"00000000",
-	o_Y => s_muxToALU);
-
-  ALUcomponent: ALU
-	
-	port map(iA			=> s_oRS,
-	        iB				=> s_muxToALU,
-	     iADDSUB			=> s_add_sub,
-	     iSIGNED			=> s_o_signed,
-	     iSHIFTDIR			=> s_shiftDir,
-	     iALULOGIC			=> s_logicCtrl,
-	     iALUOP			=> s_AlUCtl, 
-	     o_OF			=> s_Ovfl, 
-	     o_Zero			=> s_zero,
-	     o_ALUOUT			=> s_DMemAddr); 
-	
-  Mux_DmemToRegFile: mux2t1_N
-	port map(
-              i_S      => s_memReg,    
-              i_D0     => s_DMemAddr, 
-              i_D1     => s_DMemOut,  
-              o_O      => s_RegWrData); 
-*/
 end structure;
 

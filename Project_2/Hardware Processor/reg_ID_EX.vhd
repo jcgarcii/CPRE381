@@ -22,6 +22,7 @@ entity reg_ID_EX is
          i_signExt      : in std_logic_vector(N-1 downto 0); 
          i_inst15to11   : in std_logic_vector(4 downto 0); 
          i_inst 20to16  : in std_logic_vector(4 downto 0); 
+         i_instr        : in std_logic_vector(N-1 downto 0); 
          --Vector Out Feed ---------1
          o_PC           : out std_logic_vector(N-1 downto 0); 
          o_RS           : out std_logic_vector(N-1 downto 0); 
@@ -32,7 +33,8 @@ entity reg_ID_EX is
          o_jumpAddr     : out std_logic_vector(N-1 downto 0); 
          o_signExt      : out std_logic_vector(N-1 downto 0); 
          o_inst15to11   : out std_logic_vector(4 downto 0); 
-         o_inst20to16   : out std_logic_vector(4 downto 0));
+         o_inst20to16   : out std_logic_vector(4 downto 0)
+         o_instr        : out std_logic_vector(N-1 downto 0); );
 
 end reg_ID_EX; 
 
@@ -55,6 +57,13 @@ begin
              i_WE => i_WE,
              i_D => i_PC,
              o_Q => o_PC);
+
+gNBit_dffg_instr: dffg_N
+        port map(i_CLK => i_CLK, 
+             i_RST=> i_RST, 
+             i_WE => i_WE,
+             i_D => i_instr,
+             o_Q => o_instr);
 
     gNBit_dffg_RS: dffg_N
         port map(i_CLK => i_CLK, 

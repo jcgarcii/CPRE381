@@ -30,6 +30,7 @@ entity hazard_unit is
         i_WB_branch         : in std_logic; 
         --STALL 
         o_stall             : out std_logic);                   -- Outputs stall signal
+        o_flush
     
 end hazard_unit; 
 
@@ -80,9 +81,11 @@ begin
         i_MEM_jump = '1' OR
         i_MEM_branch = '1' )then 
             o_stall <= '1'; 
+            o_flush <= '1'; 
 
     --otherwise, there is no hazard: 
             o_stall <= '0';
+            o_flush <= '0';
         end if; 
     
     end process;
