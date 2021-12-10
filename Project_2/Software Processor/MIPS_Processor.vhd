@@ -170,7 +170,8 @@ architecture structure of MIPS_Processor is
     --Address/I-Type: 
     signal s_WB_jumpAddr        : std_logic_vector(N-1 downto 0); 
     signal s_WB_branchAddr      : std_logic_vector(N-1 downto 0); 
-    signal s_WB_PC_next         : std_logic_vector(N-1 downto 0); 
+    signal s_WB_PC_next         : std_logic_vector(N-1 downto 0);
+    signal s_WB_PC_input         : std_logic_vector(N-1 downto 0); 
     --Register Stuff: 
     signal s_WB_reg_RED         : std_logic_vector(N-1 downto 0);
     signal s_WB_reg_memToReg    : std_logic_vector(4 downto 0);  
@@ -792,12 +793,35 @@ g_MEM_WB : reg_MEM_WB
 ------------------------WB STAGE-------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------------------
 
-   
-        
-  
-   
+g_jal : mux2t1_N
+      port map(
+          i_S      => s_WB_control_jal,    
+          i_D0     => s_WB_ALU_out, 
+          i_D1     => s_WB_PC,  
+          o_O      => s_WB_reg_memToReg);
 
+g_memToReg : mux2t1_N
+      port map(
+          i_S      => s_WB_control_memToReg,    
+          i_D0     => s_WB_reg_memToReg, 
+          i_D1     => s_WB_reg_RED,  
+          o_O      => s_RegWrData);
 
+g_branch : mux2t1_N
+    port map(
+      i_S      => s_WB_control_zero,    
+      i_D0     => s_IF_PC, 
+      i_D1     => s_WB_branchAddr,  
+      o_O      => s_WB_PC_input);
+
+g_jump : mux2t1_N
+    port map(
+      i_S      => s_WB_control_jump,    
+      i_D0     => s_WB_PC_input, 
+      i_D1     => s_WB_jumpAddr,  
+      o_O      => s_WB_PC_next); 
+      
+oALUOut <= s_WB_ALU_out; 
 
 /* signle cycle process: 
 
