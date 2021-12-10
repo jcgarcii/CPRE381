@@ -15,13 +15,13 @@ entity hazard_unit is
     -----ID Stage;
         i_ID_jump          : in std_loigc; 
         i_ID_branch        : in std_logic; 
-        i_ID_writeAddr     : in std_logic_vector(4 downto 0); --Write Hazard
-        i_ID_writeEN       : in std_logic;                    -- Write hazard 
+        i_ID_writeAddr     : in std_logic_vector(4 downto 0); -- Write Hazard ---- ID
+        i_ID_writeEN       : in std_logic;                    -- Write hazard ---- ID
         -----EX Stage; 
         i_EX_jump          : in std_logic;
         i_EX_branch        : in std_logic; 
-        i_EX_writeAddr     : in std_logic_vector(4 downto 0); 
-        i_EX_writeEN       : in std_logic; 
+        i_EX_writeAddr     : in std_logic_vector(4 downto 0); -- Write Hazard ---- EX
+        i_EX_writeEN       : in std_logic;                    -- Write Hazard ---- EX
         ----MEM Stage;
         i_MEM_jump          : in std_logic; 
         i_MEM_branch        : in std_logic; 
@@ -29,7 +29,7 @@ entity hazard_unit is
         i_WB_jump           : in std_logic; 
         i_WB_branch         : in std_logic; 
         --STALL 
-        o_stall             : out std_logic);
+        o_stall             : out std_logic);                   -- Outputs stall signal
     
 end hazard_unit; 
 
