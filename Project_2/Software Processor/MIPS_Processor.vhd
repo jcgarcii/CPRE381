@@ -168,19 +168,21 @@ architecture structure of MIPS_Processor is
     --General:
     signal s_WB_PC              : std_logic_vector(N-1 downto 0); 
     --Address/I-Type: 
-    signal s_WB_jumpAddr_final  : std_logic_vector(N-1 downto 0); 
+    signal s_WB_jumpAddr        : std_logic_vector(N-1 downto 0); 
     signal s_WB_branchAddr      : std_logic_vector(N-1 downto 0); 
     signal s_WB_PC_next         : std_logic_vector(N-1 downto 0); 
     --Register Stuff: 
     signal s_WB_reg_RED         : std_logic_vector(N-1 downto 0);
-    signal s_WB_reg_memToReg    : std_logic_vector(N-1 downto 0);  
+    signal s_WB_reg_memToReg    : std_logic_vector(4 downto 0);  
     --ALU stuff:
     signal s_WB_ALU_out         : std_logic_vector(N-1 downto 0); 
     --Control: 
     signal s_WB_control_j       : std_logic_vector(1 downto 0);
     signal s_WB_control_jal     : std_logic;
     signal s_WB_control_memToReg  : std_logic;
+    signal s_WB_control_regWr     : std_logic; 
     signal s_WB_control_zero      : std_logic;
+    signal s_WB_control_halt      : std_logic;
     signal s_WB_control_PC_source   : std_logic; 
     
 
@@ -741,7 +743,50 @@ begin
 ---------------------------------------------------------------------------------------------------------------------
 ------------------------MEM STAGE-------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------------------
-       
+DMem: mem
+generic map(ADDR_WIDTH => 10,
+            DATA_WIDTH => N)
+port map(clk  => iCLK,
+         addr => s_DMemAddr(11 downto 2),
+         data => s_DMemData,
+         we   => s_DMemWr,
+         q    => s_DMemOut);
+
+g_MEM_WB : reg_MEM_WB
+  port map(i_CLK          => iCLK, 
+          i_RST           => iRST, 
+          i_WE            => '1',  
+          --one bit feed ins 
+          i_overflow     => s_MEM_ALU_OF,  
+          i_branch       => s_MEM_control_branch, 
+          i_jump         => s_MEM_control_j,
+          i_halt         => s_MEM_control_halt,
+          i_jumpLink     => s_MEM_control_jal,
+          i_memReg       => s_MEM_control_memToReg,
+          i_weReg        => s_MEM_control_regWr,
+        -- vector feed ins 
+          i_PC          => s_MEM_PC,
+          i_branchAddr  => s_MEM_branchAddr,
+          i_jumpAddr    => s_MEM_jumpAddr,
+          i_ALU_out     => s_MEM_ALU_out,
+          i_readData    => s_DMemOut, 
+          i_writeReg    => s_MEM_regWr, 
+          --one bit out feeds
+          o_overflow    => s_Ovfl,
+          o_branch      => s_WB_control_zero,
+          o_jump        => s_WB_control_j,
+          o_halt        => s_WB_control_halt, 
+          o_jumpLink    => s_WB_control_jal,
+          o_memReg      => s_WB_control_memToReg,
+           o_weReg      => s_WB_control_regWr,
+          --vector out feeds 
+          o_PC          => s_WB_PC,
+          o_branchAddr  => s_WB_branchAddr,
+          o_jumpAddr     => s_WB_jumpAddr,
+          o_ALU_out     => s_WB_ALU_out,  
+          o_readData    => s_WB_reg_RED,  
+          o_writeReg    => s_RegWrAddr); 
+
 
 ---------------------------------------------------------------------------------------------------------------------
 ------------------------WB STAGE-------------------------------------------------------------------------------------
@@ -755,14 +800,6 @@ begin
 
 
 /* signle cycle process: 
-  DMem: mem
-    generic map(ADDR_WIDTH => 10,
-                DATA_WIDTH => N)
-    port map(clk  => iCLK,
-             addr => s_DMemAddr(11 downto 2),
-             data => s_DMemData,
-             we   => s_DMemWr,
-             q    => s_DMemOut);
 
   -- TODO: Ensure that s_Halt is connected to an output control signal produced from decoding the Halt instruction (Opcode: 01 0100)
   -- TODO: Ensure that s_Ovfl is connected to the overflow output of your ALU
