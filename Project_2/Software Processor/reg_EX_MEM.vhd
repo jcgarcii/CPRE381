@@ -22,10 +22,10 @@ entity reg_EX_MEM is
          i_weReg        : in std_logic; 
          i_weMem        : in std_logic; 
          -- vector feed ins 
-         i_PC          : in std_logic_vector(N-1 downto 0); //next instruction
-         i_branchAddr   : in std_logic_vector(N-1 downto 0); // branch address
-         i_jumpAddr     : in std_logic_vector (N-1 downto 0 ); //jump address
-         i_ALU_out      : in std_logic_vector(N-1 downto 0); // ALU output 
+         i_PC          : in std_logic_vector(N-1 downto 0); --next instruction
+         i_branchAddr   : in std_logic_vector(N-1 downto 0); -- branch address
+         i_jumpAddr     : in std_logic_vector (N-1 downto 0 ); -- jump address
+         i_ALU_out      : in std_logic_vector(N-1 downto 0); -- ALU output 
          i_readData     : in std_logic_vector(N-1 downto 0); 
          i_writeReg     : in std_logic_vector(4 downto 0); 
          --one bit out feeds
@@ -39,10 +39,10 @@ entity reg_EX_MEM is
          o_weReg        : out std_logic; 
          o_weMem        : out std_logic; 
          --vector out feeds 
-         o_PC          : out std_logic_vector(N-1 downto 0); //next instruction
-         o_branchAddr   : out std_logic_vector(N-1 downto 0); // branch address
-         o_jumpAddr     : out std_logic_vector (N-1 downto 0 ); //jump address
-         o_ALU_out      : out std_logic_vector(N-1 downto 0); // ALU output 
+         o_PC          : out std_logic_vector(N-1 downto 0); -- next instruction
+         o_branchAddr   : out std_logic_vector(N-1 downto 0); -- branch address
+         o_jumpAddr     : out std_logic_vector (N-1 downto 0 ); -- jump address
+         o_ALU_out      : out std_logic_vector(N-1 downto 0); -- ALU output 
          o_readData     : out std_logic_vector(N-1 downto 0); 
          o_writeReg     : out std_logic_vector(4 downto 0));
 

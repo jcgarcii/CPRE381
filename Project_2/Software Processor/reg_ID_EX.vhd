@@ -16,7 +16,8 @@ entity reg_ID_EX is
          i_RS           : in std_logic_vector(N-1 downto 0); 
          i_RT           : in std_logic_vector(N-1 downto 0); 
          i_opcode       : in std_logic_vector(5 downto 0);
-         i_funct        : in std_logic_vector(5 downto 0);  
+         i_funct        : in std_logic_vector(5 downto 0);
+         i_control       : in std_logic_vector(14 downto 0);    
          i_jumpAddr     : in std_logic_vector(N-1 downto 0); 
          i_signExt      : in std_logic_vector(N-1 downto 0); 
          i_inst15to11   : in std_logic_vector(4 downto 0); 
@@ -26,7 +27,8 @@ entity reg_ID_EX is
          o_RS           : out std_logic_vector(N-1 downto 0); 
          o_RT           : out std_logic_vector(N-1 downto 0);
          o_opcode       : out std_logic_vector(5 downto 0);
-         o_funct        : out std_logic_vector(5 downto 0);   
+         o_funct        : out std_logic_vector(5 downto 0);
+         o_control      : out std_logic_vector(14 downto 0);     
          o_jumpAddr     : out std_logic_vector(N-1 downto 0); 
          o_signExt      : out std_logic_vector(N-1 downto 0); 
          o_inst15to11   : out std_logic_vector(4 downto 0); 
@@ -84,6 +86,14 @@ begin
              i_WE => i_WE,
              i_D => i_funct,
              o_Q => o_funct);
+     
+    gNBit_dffg_functCODE: dffg_N
+        generic(N => 15)
+        port map(i_CLK => i_CLK, 
+                  i_RST=> i_RST, 
+                  i_WE => i_WE,
+                  i_D => i_control,
+                  o_Q => o_control);  
 --Jump stuff
     gNBit_dffg_jADDR: dffg_N
         port map(i_CLK => i_CLK, 
