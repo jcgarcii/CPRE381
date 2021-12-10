@@ -55,8 +55,7 @@ architecture structure of MIPS_Processor is
 
   -- Required overflow signal -- for overflow exception detection
   signal s_Ovfl         : std_logic;  -- TODO: this signal indicates an overflow exception would have been initiated
- 
-
+ /*
   -- control signals
   signal  s_signExt, s_link, s_use_shamt, s_regDest, s_memReg, s_branch, s_memRD, s_memWR, s_BEQ  : std_logic;
   signal s_opcode, s_func : std_logic_vector(5 downto 0) := "000000";
@@ -72,10 +71,63 @@ architecture structure of MIPS_Processor is
   signal s_toEXT8: std_logic_vector(7 downto 0);
   
   -- Instruction Fetcher Signals: --- 
-  signal s_branchEN	: std_logic; 
+  signal s_branchEN	: std_logic;
+*/
+  ------- STAGE SIGNALS: ---------
+  --IF Stage: 
+  signal s_IF_PC    : std_logic_vector(N-1 downto 0); 
+
+  ---ID Stage: 
+      -- General-- 
+  signal s_ID_PC        : std_logic_vector(N-1 downto 0); --NEXT INSTRUCTION
+  signal s_ID_instr     : std_logic_vector(N-1 downto 0); --CURRENT INSTRUCITON 
+  signal s_ID_jumpAddr  : std_logic_vector(N-1 downto 0); 
+  signal s_ID_imm16     : std_logic_vector(N-1 downto 0); 
+  signal s_ID_imm32     : std_logic_vector(N-1 downto 0); 
+      -- regFile -- 
+  signal s_ID_reg_RS     : std_logic_vector(N-1 downto 0); 
+  signal s_ID_reg_RT     : std_logic_vector(N-1 downto 0); 
+    -- Control -- 
+  signal s_ID_opCode    : std_logic_vector(5 downto 0); 
+  signal s_ID_funct     : std_logic_vector(5 downto 0); 
+  signal s_ID_control   : std_logic_vector(14 downto 0);
   
+  --EX Stage: 
+    --General --- 
+    signal s_EX_PC              :  std_logic_vector(N-1 downto 0); 
+   --Addresses/I-type:---
+    signal s_EX_jumpAddr        : std_logic_vector(N-1 downto 0); 
+    signal s_EX_imm32           : std_logic_vector(N-1 downto 0); 
+    signal s_EX_imm32_MUX       : std_logic_vector(N-1 downto 0);
+    signal s_EX_jumpAddr_final  : std_logic_vector(N-1 downto 0); 
+    signal s_EX_branchAddr      : std_logic_vector(N-1 downto 0); 
+    --Register Stuff
+    signal s_EX_iRS             : std_logic_vector(N-1 downto 0);
+    signal s_EX_iRT             : std_logic_vector(N-1 downto 0); 
+    signal s_EX_reg_RS          : std_logic_vector(N-1 downto 0); 
+    signal s_EX_reg_RT          : std_logic_vector(N-1 downto 0); 
+    signal s_EX_reg_DST         : std_logic_vector(4 downto 0); 
+    signal s_EX_reg_Wr          : std_logic_vector(4 downto 0);
+    --ALU Stuff: 
+    signal s_EX_ALU_Src         : std_logic; 
+    signal s_EX_ALU_shamt       : std_logic_vector(4 downto 0); 
+    signal s_EX_ALU_OP          : std_logic_vector(3 downto 0); 
+    signal s_EX_ALU_out         : std_logic_vector(N-1 downto 0); 
+    signal s_EX_ALU_branch      : std_logic; 
+    signal s_EX_ALU_OF          : std_logic; 
+    --Control Stuff: 
+    signal s_EX_control         : std_logic_vector(14 downto 0);
+    signal s_EX_control_j       : std_logic_vector(1 downto 0); 
+    signal s_EX_control_jal     : std_logic;
+    signal s_EX_control_memToReg  : std_logic;
+    signal s_EX_control_DMem_WR   : std_logic; 
+    signal s_EX_control_bramch    : std_logic; 
+    signal s_EX_control_halt      : std_logic; 
+    signal s_EX_control_regWr     : std_logic; 
   
-  
+  ------------------------------------------------------------------------------------------
+  -------------Component declaration: -----------------------------------------------------
+  -----------------------------------------------------------------------------------------
   component mem is
     generic(ADDR_WIDTH : natural:= 32;
             DATA_WIDTH : natural := 10);
@@ -84,7 +136,7 @@ architecture structure of MIPS_Processor is
           addr         : in std_logic_vector((ADDR_WIDTH-1) downto 0);
           data         : in std_logic_vector((DATA_WIDTH-1) downto 0);
           we           : in std_logic := '1';
-          q            : out std_logic_vector((DATA_WIDTH -1) downto 0));
+          q            : out std_logic_vector((DATA_WIDTH-1) downto 0));
     end component;
 
 --General components
@@ -230,22 +282,158 @@ component replqbg is
        o_F          : out std_logic_vector(N-1 downto 0));
 
 end component;
- 
-begin
-  -- TODO: This is required to be your final input to your instruction memory. This provides a feasible method to externally load the memory module which means that the synthesis tool must assume it knows nothing about the values stored in the instruction memory. If this is not included, much, if not all of the design is optimized out because the synthesis tool will believe the memory to be all zeros.
-  with iInstLd select
-    s_IMemAddr <= s_NextInstAddr when '0',
-      iInstAddr when others;
 
-  IMem: mem
-    generic map(ADDR_WIDTH => 10,
-                DATA_WIDTH => N)
-    port map(clk  => iCLK,
-             addr => s_IMemAddr(11 downto 2),
-             data => iInstExt,
-             we   => iInstLd,
-             q    => s_Inst);
-	
+-----Stage Register Componenets: 
+
+--IF/ID Stage: ------------------------------------------0
+component reg_IF_ID is 
+  port(i_CLK          : in std_logic;
+       i_RST          : in std_logic; 
+       i_WE           : in std_logic; 
+       i_PC           : in std_logic_vector(N-1 downto 0); 
+       i_instr        : in std_logic_vector(N-1 downto 0); 
+       o_PC           : in std_logic_vector(N-1 downto 0); 
+       o_instr        : in std_logic_vector(N-1 downto 0));
+end component; 
+
+--ID/EX Stage: ------------------------------------------1
+component reg_ID_EX is 
+   port(i_CLK          : in std_logic; 
+       i_RST          : in std_logic; 
+       i_WE           : in std_logic; 
+       -----VECTOR Feed-in: -----0
+       i_PC           : in std_logic_vector(N-1 downto 0); 
+       i_RS           : in std_logic_vector(N-1 downto 0); 
+       i_RT           : in std_logic_vector(N-1 downto 0); 
+       i_opcode       : in std_logic_vector(5 downto 0);
+       i_funct        : in std_logic_vector(5 downto 0);  
+       i_jumpAddr     : in std_logic_vector(N-1 downto 0); 
+       i_signExt      : in std_logic_vector(N-1 downto 0); 
+       i_inst15to11   : in std_logic_vector(4 downto 0); 
+       i_inst 20to16  : in std_logic_vector(4 downto 0); 
+       --Vector Out Feed ---------1
+       o_PC           : out std_logic_vector(N-1 downto 0); 
+       o_RS           : out std_logic_vector(N-1 downto 0); 
+       o_RT           : out std_logic_vector(N-1 downto 0);
+       o_opcode       : out std_logic_vector(5 downto 0);
+       o_funct        : out std_logic_vector(5 downto 0);   
+       o_jumpAddr     : out std_logic_vector(N-1 downto 0); 
+       o_signExt      : out std_logic_vector(N-1 downto 0); 
+       o_inst15to11   : out std_logic_vector(4 downto 0); 
+       o_inst20to16   : out std_logic_vector(4 downto 0));
+end component; 
+
+--EX/MEM Stage: ---------------------------------------------1
+component reg_EX_MEM is
+  port(i_CLK          : in std_logic; 
+       i_RST          : in std_logic; --(1 resets the register)
+       i_WE           : in std_logic; 
+       --one bit feed ins 
+       i_overflow     : in std_logic; 
+       i_branch       : in std_logic;
+       i_jump         : in std_logic;
+       i_halt         : in std_logic;
+       i_jumpLink     : in std_logic;
+       i_zero         : in std_logic;
+       i_memReg       : in std_logic;
+       i_weReg        : in std_logic; 
+       i_weMem        : in std_logic; 
+       -- vector feed ins 
+       i_PC          : in std_logic_vector(N-1 downto 0); --next instruction
+       i_branchAddr   : in std_logic_vector(N-1 downto 0); -- branch address
+       i_jumpAddr     : in std_logic_vector (N-1 downto 0 ); -- jump address
+       i_ALU_out      : in std_logic_vector(N-1 downto 0); -- ALU output 
+       i_readData     : in std_logic_vector(N-1 downto 0); 
+       i_writeReg     : in std_logic_vector(4 downto 0); 
+       --one bit out feeds
+       o_overflow     : out std_logic; 
+       o_branch       : out std_logic;
+       o_jump         : out std_logic;
+       o_halt         : out std_logic;
+       o_jumpLink     : out std_logic;
+       o_zero         : out std_logic;
+       o_memReg       : out std_logic;
+       o_weReg        : out std_logic; 
+       o_weMem        : out std_logic; 
+       --vector out feeds 
+       o_PC          : out std_logic_vector(N-1 downto 0); -- next instruction
+       o_branchAddr   : out std_logic_vector(N-1 downto 0); -- branch address
+       o_jumpAddr     : out std_logic_vector (N-1 downto 0 ); -- jump address
+       o_ALU_out      : out std_logic_vector(N-1 downto 0); -- ALU output 
+       o_readData     : out std_logic_vector(N-1 downto 0); 
+       o_writeReg     : out std_logic_vector(4 downto 0));
+
+end component;
+
+--MEM/WB Stage: 
+component reg_MEM_WB is
+  port(i_CLK          : in std_logic; 
+       i_RST          : in std_logic; //(1 resets the register)
+       i_WE           : in std_logic; 
+       --one bit feed ins 
+       i_overflow     : in std_logic; 
+       i_branch       : in std_logic; --if branch
+       i_jump         : in std_logic;
+       i_halt         : in std_logic;
+       i_jumpLink     : in std_logic;
+       i_memReg       : in std_logic;
+       i_weReg        : in std_logic;  
+       -- vector feed ins 
+       i_PC          : in std_logic_vector(N-1 downto 0); -- next instruction
+       i_branchAddr   : in std_logic_vector(N-1 downto 0); -- branch Addr
+       i_jumpAddr     : in std_logic_vector (N-1 downto 0 ); --jump address
+       i_ALU_out      : in std_logic_vector(N-1 downto 0); --ALU output 
+       i_readData     : in std_logic_vector(N-1 downto 0); 
+       i_writeReg     : in std_logic_vector(4 downto 0); 
+       --one bit out feeds
+       o_overflow     : out std_logic; 
+       o_branch       : out std_logic; -- if branch
+       o_jump         : out std_logic;
+       o_halt         : out std_logic;
+       o_jumpLink     : out std_logic;
+       o_memReg       : out std_logic;
+       o_weReg        : out std_logic; 
+       --vector out feeds 
+       o_PC          : out std_logic_vector(N-1 downto 0); --next instruction
+       o_branchAddr   : out std_logic_vector(N-1 downto 0); -- branch address
+       o_jumpAddr     : out std_logic_vector (N-1 downto 0 ); --jump address
+       o_ALU_out      : out std_logic_vector(N-1 downto 0); -- ALU output 
+       o_readData     : out std_logic_vector(N-1 downto 0); 
+       o_writeReg     : out std_logic_vector(4 downto 0));
+end component; 
+ ---------------------------------------------------------------------------------------------------------------------
+ ------------------------IF STAGE-------------------------------------------------------------------------------------
+ --------------------------------------------------------------------------------------------------------------------
+begin
+ -- TODO: This is required to be your final input to your instruction memory. This provides a feasible method to externally load the memory module which means that the synthesis tool must assume it knows nothing about the values stored in the instruction memory. If this is not included, much, if not all of the design is optimized out because the synthesis tool will believe the memory to be all zeros.
+   with iInstLd select
+   s_IMemAddr <= s_NextInstAddr when '0',
+   iInstAddr when others;
+   
+   IMem: mem
+        generic map(ADDR_WIDTH => 10,
+               DATA_WIDTH => N)
+        port map(clk  => iCLK,
+                addr => s_IMemAddr(11 downto 2),
+                data => iInstExt,
+                we   => iInstLd,
+                q    => s_Inst);
+ 
+  
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
   DMem: mem
     generic map(ADDR_WIDTH => 10,
                 DATA_WIDTH => N)

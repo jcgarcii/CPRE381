@@ -75,7 +75,7 @@ architecture structure of MIPS_Processor is
 */
   ------- STAGE SIGNALS: ---------
   --IF Stage: 
-  signal s_if_PC    : std_logic_vector(N-1 downto 0); 
+  signal s_IF_PC    : std_logic_vector(N-1 downto 0); 
 
   ---ID Stage: 
       -- General-- 
@@ -136,7 +136,7 @@ architecture structure of MIPS_Processor is
           addr         : in std_logic_vector((ADDR_WIDTH-1) downto 0);
           data         : in std_logic_vector((DATA_WIDTH-1) downto 0);
           we           : in std_logic := '1';
-          q            : out std_logic_vector((DATA_WIDTH -1) downto 0));
+          q            : out std_logic_vector((DATA_WIDTH-1) downto 0));
     end component;
 
 --General components
@@ -326,7 +326,7 @@ end component;
 --EX/MEM Stage: ---------------------------------------------1
 component reg_EX_MEM is
   port(i_CLK          : in std_logic; 
-       i_RST          : in std_logic; //(1 resets the register)
+       i_RST          : in std_logic; --(1 resets the register)
        i_WE           : in std_logic; 
        --one bit feed ins 
        i_overflow     : in std_logic; 

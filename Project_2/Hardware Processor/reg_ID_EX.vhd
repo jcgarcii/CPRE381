@@ -8,14 +8,16 @@ use IEEE.std_logic_1164.all;
 
 entity reg_ID_EX is 
     generic(N : integer := 32); 
-    port(i_CLK      : in std_logic; 
-         i_RST      : in std_logic; 
-         i_WE       : in std_logic; 
+    port(i_CLK          : in std_logic; 
+         i_RST          : in std_logic; 
+         i_WE           : in std_logic; 
          -----VECTOR Feed-in: -----0
          i_PC           : in std_logic_vector(N-1 downto 0); 
          i_RS           : in std_logic_vector(N-1 downto 0); 
          i_RT           : in std_logic_vector(N-1 downto 0); 
-         i_control      : in std_logic_vector(14 downto 0); 
+         i_opcode       : in std_logic_vector(5 downto 0);
+         i_funct        : in std_logic_vector(5 downto 0);
+         i_control       : in std_logic_vector(14 downto 0);    
          i_jumpAddr     : in std_logic_vector(N-1 downto 0); 
          i_signExt      : in std_logic_vector(N-1 downto 0); 
          i_inst15to11   : in std_logic_vector(4 downto 0); 
@@ -23,12 +25,14 @@ entity reg_ID_EX is
          --Vector Out Feed ---------1
          o_PC           : out std_logic_vector(N-1 downto 0); 
          o_RS           : out std_logic_vector(N-1 downto 0); 
-         o_RT           : out std_logic_vector(N-1 downto 0); 
-         o_control      : out std_logic_vector(14 downto 0); 
+         o_RT           : out std_logic_vector(N-1 downto 0);
+         o_opcode       : out std_logic_vector(5 downto 0);
+         o_funct        : out std_logic_vector(5 downto 0);
+         o_control      : out std_logic_vector(14 downto 0);     
          o_jumpAddr     : out std_logic_vector(N-1 downto 0); 
          o_signExt      : out std_logic_vector(N-1 downto 0); 
          o_inst15to11   : out std_logic_vector(4 downto 0); 
-         o_inst20to16  : out std_logic_vector(4 downto 0));
+         o_inst20to16   : out std_logic_vector(4 downto 0));
 
 end reg_ID_EX; 
 
@@ -66,13 +70,30 @@ begin
              i_D => i_RT,
              o_Q => o_RT);
 
-    gNBit_dffg_CONTROl: dffg_N
-    generic(N => 15)
+--------- CONTROL STUFF
+    gNBit_dffg_opCODE: dffg_N
+    generic(N => 6)
         port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
-             i_D => i_control,
-             o_Q => o_control);
+             i_D => i_opcode,
+             o_Q => o_opcode);
+
+    gNBit_dffg_functCODE: dffg_N
+        generic(N => 6)
+        port map(i_CLK => i_CLK, 
+             i_RST=> i_RST, 
+             i_WE => i_WE,
+             i_D => i_funct,
+             o_Q => o_funct);
+     
+    gNBit_dffg_functCODE: dffg_N
+        generic(N => 15)
+        port map(i_CLK => i_CLK, 
+                  i_RST=> i_RST, 
+                  i_WE => i_WE,
+                  i_D => i_control,
+                  o_Q => o_control);  
 --Jump stuff
     gNBit_dffg_jADDR: dffg_N
         port map(i_CLK => i_CLK, 
