@@ -27,6 +27,7 @@ entity reg_EX_MEM is
          i_jumpAddr     : in std_logic_vector (N-1 downto 0 ); -- jump address
          i_ALU_out      : in std_logic_vector(N-1 downto 0); -- ALU output 
          i_readData     : in std_logic_vector(N-1 downto 0); 
+         i_halt         : in std_logic;
          i_writeReg     : in std_logic_vector(4 downto 0); 
          --one bit out feeds
          o_overflow     : out std_logic; 
@@ -36,6 +37,7 @@ entity reg_EX_MEM is
          o_jumpLink     : out std_logic;
          o_zero         : out std_logic;
          o_memReg       : out std_logic;
+         o_halt         : out std_logic; 
          o_weReg        : out std_logic; 
          o_weMem        : out std_logic; 
          --vector out feeds 
@@ -135,6 +137,14 @@ g_dffg_WE_Mem: dffg
              i_WE => i_WE,
              i_D => i_weMem,
              o_Q => o_weMem);
+
+
+g_dffg_WE_Mem: dffg
+    port map(i_CLK => i_CLK, 
+             i_RST=> i_RST, 
+             i_WE => i_WE,
+             i_D => i_halt,
+             o_Q => o_halt);
 
 ---N-Bit Vectors: ----
 gNBit_dffg_PC: dffg_N

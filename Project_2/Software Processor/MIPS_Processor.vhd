@@ -55,7 +55,10 @@ architecture structure of MIPS_Processor is
 
   -- Required overflow signal -- for overflow exception detection
   signal s_Ovfl         : std_logic;  -- TODO: this signal indicates an overflow exception would have been initiated
- /*
+ 
+  --Dummy Signal: 
+  signal s_x    : std_logic; 
+  /* Single Cycle Signals: 
   -- control signals
   signal  s_signExt, s_link, s_use_shamt, s_regDest, s_memReg, s_branch, s_memRD, s_memWR, s_BEQ  : std_logic;
   signal s_opcode, s_func : std_logic_vector(5 downto 0) := "000000";
@@ -72,9 +75,6 @@ architecture structure of MIPS_Processor is
   
   -- Instruction Fetcher Signals: --- 
   signal s_branchEN	: std_logic;
-
-  -- Other signals: ----////These are for additional inputs that don't matter (ALU); 
-  signal x1, x2, x3 : std_logic; 
 
   */
   ------- STAGE SIGNALS: ---------
@@ -104,23 +104,30 @@ architecture structure of MIPS_Processor is
    --Addresses/I-type:---
     signal s_EX_jumpAddr        : std_logic_vector(N-1 downto 0); 
     signal s_EX_imm32           : std_logic_vector(N-1 downto 0); 
-    signal s_EX_imm32_MUX       : std_logic_vector(N-1 downto 0);
+    signal s_EX_immj            : std_logic_vector(N-1 downto 0); 
+    signal s_EX_imm_mux         : std_logic_vector(N-1 downto 0);
     signal s_EX_jumpAddr_final  : std_logic_vector(N-1 downto 0); 
     signal s_EX_branchAddr      : std_logic_vector(N-1 downto 0); 
     --Register Stuff
-    signal s_EX_iRS             : std_logic_vector(4 downto 0);
-    signal s_EX_iRT             : std_logic_vector(4 downto 0); 
+    signal s_EX_iRT             : std_logic_vector(4 downto 0);
+    signal s_EX_iRD             : std_logic_vector(4 downto 0); 
     signal s_EX_reg_RS          : std_logic_vector(N-1 downto 0); 
     signal s_EX_reg_RT          : std_logic_vector(N-1 downto 0); 
-    signal s_EX_reg_DST         : std_logic_vector(4 downto 0); 
+    signal s_EX_reg_jal         : std_logic_vector(4 downto 0); 
     signal s_EX_reg_Wr          : std_logic_vector(4 downto 0);
     --ALU Stuff: 
     signal s_EX_ALU_Src         : std_logic; 
     signal s_EX_ALU_shamt       : std_logic_vector(4 downto 0); 
     signal s_EX_ALU_OP          : std_logic_vector(3 downto 0); 
     signal s_EX_ALU_out         : std_logic_vector(N-1 downto 0); 
-    signal s_EX_ALU_branch      : std_logic; 
+    signal s_EX_ALU_zero        : std_logic; 
     signal s_EX_ALU_OF          : std_logic; 
+    signal s_EX_logicCtrl       : std_logic_vector(1 downto 0); 
+    signal s_EX_arithCtl        : std_logic; 
+    signal s_EX_shiftDir        : std_logic; 
+    signal s_EX_add_sub         : std_logic; 
+    signal s_EX_signed          : std_logic; 
+
     --Control Stuff: 
     signal s_EX_control         : std_logic_vector(14 downto 0);
     signal s_EX_control_j       : std_logic_vector(1 downto 0); 
@@ -128,14 +135,17 @@ architecture structure of MIPS_Processor is
     signal s_EX_control_memToReg  : std_logic;
     signal s_EX_control_DMem_WR   : std_logic; 
     signal s_EX_control_bramch    : std_logic; 
+    signal s_EX_control_dst       : std_logic; 
     signal s_EX_control_halt      : std_logic; 
-    signal s_EX_control_regWr     : std_logic; 
+    signal s_EX_control_regWr     : std_logic;
+    signal s_EX_opcode            : std_logic_vector(5 downto 0); 
+    signal s_EX_funct             : std_logic_vector(5 downto 0);  
 
   --MEM Stage:
     --General: 
     signal s_MEM_PC             : std_logic_vector(N-1 downto 0); 
     --Address/I-Type: 
-    signal s_MEM_jumpAddr_final : std_logic_vector(N-1 downto 0); 
+    signal s_MEM_jumpAddr       : std_logic_vector(N-1 downto 0); 
     signal s_MEM_branchAddr     : std_logic_vector(N-1 downto 0); 
     --Register Stuff: 
     signal s_MEM_reg_Wr         : std_logic_vector(4 downto 0); 
@@ -149,8 +159,9 @@ architecture structure of MIPS_Processor is
     signal s_MEM_control_jal    : std_logic;
     signal s_MEM_control_memToReg : std_logic;
     signal s_MEM_control_DMem_WR  : std_logic; 
+    signal s_MEM_control_regWr    : std_logic; 
     signal s_MEM_control_branch   : std_logic; 
-    signal s_MEM_contorl_halt     : std_logic; 
+    signal s_MEM_control_halt     : std_logic; 
     signal s_MEM_control_zero     : std_logic;    
 
   --WB Stage:
@@ -371,9 +382,10 @@ component reg_ID_EX is
        i_PC           : in std_logic_vector(N-1 downto 0); 
        i_RS           : in std_logic_vector(N-1 downto 0); 
        i_RT           : in std_logic_vector(N-1 downto 0); 
-       i_opcode       : in std_logic_vector(5 downto 0);
+       i_opCode       : in std_logic_vector(5 downto 0);
        i_funct        : in std_logic_vector(5 downto 0);  
-       i_jumpAddr     : in std_logic_vector(N-1 downto 0); 
+       i_jumpAddr     : in std_logic_vector(N-1 downto 0);
+       i_halt         : in std_logic; 
        i_signExt      : in std_logic_vector(N-1 downto 0); 
        i_inst15to11   : in std_logic_vector(4 downto 0); 
        i_inst 20to16  : in std_logic_vector(4 downto 0); 
@@ -381,8 +393,9 @@ component reg_ID_EX is
        o_PC           : out std_logic_vector(N-1 downto 0); 
        o_RS           : out std_logic_vector(N-1 downto 0); 
        o_RT           : out std_logic_vector(N-1 downto 0);
-       o_opcode       : out std_logic_vector(5 downto 0);
-       o_funct        : out std_logic_vector(5 downto 0);   
+       o_opCode       : out std_logic_vector(5 downto 0);
+       o_funct        : out std_logic_vector(5 downto 0);
+       o_halt         : out std_logic;    
        o_jumpAddr     : out std_logic_vector(N-1 downto 0); 
        o_signExt      : out std_logic_vector(N-1 downto 0); 
        o_inst15to11   : out std_logic_vector(4 downto 0); 
@@ -402,6 +415,7 @@ component reg_EX_MEM is
        i_jumpLink     : in std_logic;
        i_zero         : in std_logic;
        i_memReg       : in std_logic;
+       i_halt         : in std_logic;
        i_weReg        : in std_logic; 
        i_weMem        : in std_logic; 
        -- vector feed ins 
@@ -418,6 +432,7 @@ component reg_EX_MEM is
        o_halt         : out std_logic;
        o_jumpLink     : out std_logic;
        o_zero         : out std_logic;
+       o_halt         : out std_logic; 
        o_memReg       : out std_logic;
        o_weReg        : out std_logic; 
        o_weMem        : out std_logic; 
@@ -497,7 +512,7 @@ begin
           iB			    =>  x"00000004",	
           nAdd_Sub		=>  '0', 
           oSum			  =>  s_IF_PC, 
-          oCarry			=>  s_X1); 
+          oCarry			=>  s_x); 
 
   g_IF_ID : reg_IF_ID 
       port map(i_CLK          => iCLK,
@@ -570,9 +585,13 @@ begin
 
   -- in the event of a jump, we extend from 26 to 28 bits:  
   s_ID_jumpAddr(0) <= '0';
-  s_ID_jumpAddr(1) <= '1'; 
+  s_ID_jumpAddr(1) <= '0'; 
   s_ID_jumpAddr(27 downto 2) <= s_ID_instr(25 downto 0); 
-  s_ID_jumpAddr(31 downto 28) <= s_ID_PC(31 downto 28); -- these bits should be empty 
+  s_ID_jumpAddr(31 downto 28) <= s_ID_PC(31 downto 28); -- these bits should be empty \
+
+  s_EX_immj(31 downto 0) <= s_EX_imm32(29 downto 0); 
+  s_EX_immj(1)           <= '0';
+  s_EX_immj(0)           <= '0';
 
   g_ID_EX: reg_ID_EX
     port(i_CLK            => iCLK, 
@@ -582,7 +601,10 @@ begin
           i_PC            => s_ID_PC,  
           i_RS            => s_ID_reg_RS, 
           i_RT            => s_ID_reg_RT,  
-          i_control       => s_ID_control,     
+          i_control       => s_ID_control,
+          i_halt          => s_ID_Halt,
+          i_funct         => s_ID_funct, 
+          i_opCode        => s_ID_opCode,      
           i_jumpAddr      => s_ID_jumpAddr,  
           i_signExt       => s_ID_imm32,  
           i_inst15to11    => s_ID_instr(20 downto 16),  
@@ -591,38 +613,148 @@ begin
           o_PC            => s_EX_PC,  
           o_RS            => s_EX_reg_RS,  
           o_RT            => s_EX_reg_RT, 
-          o_control       => s_EX_control,     
+          i_funct         => s_EX_funct, 
+          o_opCode         => s_EX_opCode, 
+          o_control       => s_EX_control,
+          o_halt          => s_EX_control_halt,       
           o_jumpAddr      => s_EX_jumpAdr, 
           o_signExt       => s_EX_imm32,  
-          o_inst15to11    => s_EX_iRS, 
-          o_inst20to16    => s_EX_iRT);
-
+          o_inst15to11    => s_EX_iRT, 
+          o_inst20to16    => s_EX_iRD);
  ---------------------------------------------------------------------------------------------------------------------
  ------------------------EX STAGE-------------------------------------------------------------------------------------
  --------------------------------------------------------------------------------------------------------------------
-  
-      
+   -- Setup Control Bits for the execution stage: 
+      s_EX_control_jal        <= s_EX_control(15);
+      s_EX_control_dst            <= s_EX_control(13)
+      s_EX_ALU_Src            <= s_EX_control(12 downto 11);
+      s_EX_control_memToReg   <= s_EX_control(10);
+      s_EX_control_regWr      <= s_EX_control(9);
+      s_EX_control_DMem_WR    <= s_EX_control(8);
+      s_EX_control_bramch     <= s_EX_control(6); 
+      s_EX_control_j          <= s_EX_control(4 downto 3);
+      s_EX_ALU_OP             <= s_EX_control(2 downto 0); 
+
+  -- Branch Calculation: 
+      g_branchOffset  :  AddSub_N  
+          port map (iA			    =>  s_EX_PC,    	
+                    iB			    =>  s_EX_imm32_MUX,	
+                    nAdd_Sub		=>  '0', 
+                    oSum			  =>  s_EX_branchAddr, 
+                    oCarry			=>  s_x); 
+    -- ALU Bits: 
+    s_EX_ALU_shamt            <= s_EX_imm32(10 downto 6); 
     
-  
-      
+    -- Jump mux 
+      g_jump_mux2t1   : mux2t1_N
+      port map(
+                  i_S      => s_EX_control_j(1),    
+                  i_D0     => s_EX_jumpAddr, 
+                  i_D1     => s_EX_reg_RS,  
+                  o_O      => s_EX_jumpAddr_final);
+
+    -- ALU Operation:
+   g_ALUSrc  : mux2t1_N
+   port map(
+               i_S      => s_EX_ALU_Src,    
+               i_D0     => s_EX_reg_RT, 
+               i_D1     => s_EX_imm32,  
+               o_O      => s_EX_imm_mux);
+
+    g_ALUcontrol: ALUControl
+      port map(
+              func		=> s_EX_funct,
+              opCode		=> s_EX_opcode,
+              logicCTL	=> s_EX_logicCtrl,
+              arithCtl	=> s_EX_arithCtl,
+              shiftDir	=> s_EX_shiftDir,
+              add_sub		=> s_EX_add_sub,
+              o_signed	=> s_EX_signed);
+    
+    g_ALU : ALU 	
+      port map(iA		        =>  s_EX_reg_RS,  
+          iB				    =>  s_EX_reg_RT,
+          iADDSUB			  => s_EX_add_sub,
+          iSIGNED			  => s_EX_signed,
+          iSHIFTDIR			=> s_EX_shiftDir,
+          iALULOGIC		  => s_EX_logicCtrl, 
+          iALUOP			 => s_EX_ALU_OP,  
+          o_OF			   => s_EX_ALU_OF, 
+          o_Zero			 => s_EX_ALU_zero, 
+          o_ALUOUT		 => s_EX_ALU_out); 
+
+     g_reg_DST : mux2t1_N
+        generic map(N => 5)
+      port map(
+          i_S      => s_EX_control_jal,    
+          i_D0     => s_EX_iRT 
+          i_D1     => "11111",  
+          o_O      => s_EX_reg_jal);      
+
+    g_reg_DST : mux2t1_N
+        generic map(N => 5)
+      port map(
+          i_S      => s_EX_control_dst,    
+          i_D0     => s_EX_reg_jal, 
+          i_D1     => s_EX_iRD,  
+          o_O      => s_EX_reg_Wr);
+
+      g_EX_MEM    : reg_EX_MEM
+          port map(i_CLK          => iCLK,  
+            i_RST                 => iRST, 
+            i_WE                  => '1',  
+            --one bit feed ins 
+            i_overflow            => s_EX_ALU_OF,  
+            i_branch              => s_EX_control_branch,               
+            i_jump                => s_EX_control_j, 
+            i_halt                => s_EX_control_halt, 
+            i_jumpLink            => s_EX_control_jal, 
+            i_zero                => s_EX_ALU_zero, 
+            i_memReg              => s_EX_control_memToReg,
+            i_weReg               => s_EX_control_regWr,
+            i_weMem               => s_EX_control_DMem_WR,
+            -- vector feed ins 
+            i_PC                 => s_EX_PC, --next instruction
+            i_branchAddr         => s_EX_branchAddr, -- branch address
+            i_jumpAddr           => s_EX_jumpAddr_final, -- jump address
+            i_ALU_out            => s_EX_ALU_out, -- ALU output 
+            i_readData           => s_EX_reg_RT,  
+            i_writeReg           => s_EX_reg_Wr; 
+            --one bit out feeds
+            o_overflow          => s_MEM_ALU_OF, 
+            o_branch            => s_MEM_control_branch,
+            o_jump              => s_MEM_control_j,
+            o_halt             => s_MEM_control_halt, 
+            o_jumpLink        => s_MEM_control_jal, 
+            o_zero            => s_MEM_ALU_branch, 
+            o_memReg          => s_MEM_control_memToReg,
+            o_weReg           => s_MEM_control_regWr, 
+            o_weMem           => s_MEM_control_DMem_WR,
+            --vector out feeds 
+            o_PC              => s_MEM_PC, -- next instruction
+            o_branchAddr      => s_MEM_branchAddr, -- branch address
+            o_jumpAddr        => s_MEM_jumpAddr, -- jump address
+            o_ALU_out         => s_MEM_ALU_out, -- ALU output 
+            o_readData       => s_MEM_reg_RD,  
+            o_writeReg      => s_MEM_reg_WR); 
+
+---------------------------------------------------------------------------------------------------------------------
+------------------------MEM STAGE-------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------
+       
+
+---------------------------------------------------------------------------------------------------------------------
+------------------------WB STAGE-------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------
+
+   
+        
   
    
- 
-  
 
 
 
-
-
-
-
-
-
-
-
-  
-
-
+/* signle cycle process: 
   DMem: mem
     generic map(ADDR_WIDTH => 10,
                 DATA_WIDTH => N)
@@ -637,22 +769,7 @@ begin
 
   -- TODO: Implement the rest of your processor below this comment! 
 
-	gBRANCH	: andg2
-		port map(i_A	=> s_Branch,
-				 i_B	=> s_zero,
-				 o_F	=> s_branchEN); 
 
-
-  instrFetch:inst_fetch
-	   port map(iCLK			=> iCLK,
-		iRST			=> iRST,
-		iMEM_WE			=> '1',
-		iBranch			=> s_branchEN,
-		iJump			=> s_jump, 
-		i_IMM			=> s_extImm,		
-		iPCNext			=> s_oRS,	
-		iINSTR			=> s_Inst,
-		oAddr			=> s_NextInstAddr);	
 		
   Mux_ImemToRegFile: mux2t1_5
 	port map(
@@ -661,17 +778,6 @@ begin
               i_D1     => s_Inst(15 downto 11),  
               o_O      => s_RegWrAddr); 
 
-
- gregFile : regFile
- port map(iCLK        	=> iCLK,     -- Clock input
-       iRST        	=> iRST,    -- Reset input
-       iWRN             => s_RegWrAddr,   
-       iWE	    	=> s_RegWr, 
-       iWD          	=> s_RegWrData,   
-       iDP0	     	=> s_Inst(25 downto 21),
-       iDP1	      	=> s_Inst(20 downto 16), 
-       oDP0	      	=> s_oRS,
-       oDP1          	=> s_DMemData); 
 
  
 
@@ -703,15 +809,7 @@ replext: extend8t32
 		ALUop		=> s_AlUCtl);
 
 --TODO
-  gALUcontrol: ALUControl
-  port map(
-		func		=> s_Inst(5 downto 0),
-		opCode		=> s_Inst(31 downto 26),
-		logicCTL	=> s_logicCtrl,
-		arithCtl	=> s_arithCtl,
-		shiftDir	=> s_shiftDir,
-		add_sub		=> s_add_sub,
-		o_signed	=> s_o_signed);
+
 
 
 --TODO make into 4t1
@@ -742,6 +840,6 @@ replext: extend8t32
               i_D0     => s_DMemAddr, 
               i_D1     => s_DMemOut,  
               o_O      => s_RegWrData); 
-
+*/
 end structure;
 

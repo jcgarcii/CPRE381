@@ -4,17 +4,16 @@ use IEEE.std_logic_1164.all;
 entity ALU is
 	
 	generic(N : integer := 32);
-	port(iA				: in std_logic_vector(N-1 downto 0); 
-	     iB				: in std_logic_vector(N-1 downto 0);
-	     iHalt			: in std_logic; 
+	port(iA					: in std_logic_vector(N-1 downto 0); 
+	     iB					: in std_logic_vector(N-1 downto 0);
 	     iADDSUB			: in std_logic;
 	     iSIGNED			: in std_logic;
 	     iSHIFTDIR			: in std_logic; 
 	     iALULOGIC			: in std_logic_vector(1 downto 0);
-	     iALUOP			: in std_logic_vector(2 downto 0); 
-	     o_OF			: out std_logic; 
-	     o_Zero			: out std_logic;
-	     o_Halt			: out std_logic; 
+	     iALUOP				: in std_logic_vector(2 downto 0); 
+	     o_OF				: out std_logic; 
+	     o_Zero				: out std_logic;
+	     o_Halt				: out std_logic; 
 	     o_ALUOUT			: out std_logic_vector(N-1 downto 0)); 
 
 end ALU;
