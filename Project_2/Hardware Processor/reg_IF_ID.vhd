@@ -13,8 +13,8 @@ entity reg_IF_ID is
          i_WE           : in std_logic; 
          i_PC           : in std_logic_vector(N-1 downto 0); 
          i_instr        : in std_logic_vector(N-1 downto 0); 
-         o_PC           : in std_logic_vector(N-1 downto 0); 
-         o_instr        : in std_logic_vector(N-1 downto 0));
+         o_PC           : out std_logic_vector(N-1 downto 0); 
+         o_instr        : out std_logic_vector(N-1 downto 0));
 
 end reg_IF_ID; 
 
