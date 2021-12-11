@@ -20,8 +20,7 @@ entity reg_ID_EX is
          i_control       : in std_logic_vector(14 downto 0);    
          i_jumpAddr     : in std_logic_vector(N-1 downto 0); 
          i_signExt      : in std_logic_vector(N-1 downto 0); 
-         i_inst15to11   : in std_logic_vector(4 downto 0); 
-         i_inst 20to16  : in std_logic_vector(4 downto 0); 
+         i_reg_DST      : in std_logic_vector(4 downto 0); 
          i_instr        : in std_logic_vector(N-1 downto 0); 
          --Vector Out Feed ---------1
          o_PC           : out std_logic_vector(N-1 downto 0); 
@@ -32,8 +31,7 @@ entity reg_ID_EX is
          o_control      : out std_logic_vector(14 downto 0);     
          o_jumpAddr     : out std_logic_vector(N-1 downto 0); 
          o_signExt      : out std_logic_vector(N-1 downto 0); 
-         o_inst15to11   : out std_logic_vector(4 downto 0); 
-         o_inst20to16   : out std_logic_vector(4 downto 0)
+         o_reg_DST      : out std_logic_vector(4 downto 0); 
          o_instr        : out std_logic_vector(N-1 downto 0); );
 
 end reg_ID_EX; 
@@ -117,21 +115,13 @@ gNBit_dffg_instr: dffg_N
              i_WE => i_WE,
              i_D => i_signExt,
              o_Q => o_signExt);
---15 or 20
+             
     gNBit_dffg_15to11: dffg_N
     generic(N => 5)
         port map(i_CLK => i_CLK, 
              i_RST=> i_RST, 
              i_WE => i_WE,
-             i_D => i_inst15to11,
-             o_Q => o_inst15to11);
+             i_D => i_reg_DST,
+             o_Q => o_reg_DST);
 
-    gNBit_dffg_20to16: dffg_N
-    generic(N => 5)
-        port map(i_CLK => i_CLK, 
-             i_RST=> i_RST, 
-             i_WE => i_WE,
-             i_D => i_inst20to16,
-             o_Q => o_inst20to16);
-        
 end structural; 

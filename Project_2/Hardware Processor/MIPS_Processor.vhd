@@ -61,6 +61,10 @@ architecture structure of MIPS_Processor is
   ------- STAGE SIGNALS: ---------
   --IF Stage: 
   signal s_IF_PC    : std_logic_vector(N-1 downto 0); 
+ signal s_IF_stalled_Addr : std_logic_Vector(N-1 downto 0);
+ signal s_IF_stalled_instr : std_logic_Vector(N-1 downto 0);  
+ signal s_IF_stall      : std_logic;
+ signal s_IF_flush      : std_logic; 
 
   ---ID Stage: 
       -- General-- 
@@ -72,17 +76,27 @@ architecture structure of MIPS_Processor is
       -- regFile -- 
   signal s_ID_reg_RS     : std_logic_vector(N-1 downto 0); 
   signal s_ID_reg_RT     : std_logic_vector(N-1 downto 0); 
-    -- Control -- 
+  signal s_ID_reg_dst    : std_logic_vector(4 downto 0); 
+  signal s_ID_RegWr    : std_logic_vector(4 downto 0);   
+  
+  -- Control -- 
   signal s_ID_opCode    : std_logic_vector(5 downto 0); 
   signal s_ID_funct     : std_logic_vector(5 downto 0); 
   signal s_ID_Halt      : std_logic;
   signal s_ID_extend    : std_logic; 
   signal s_ID_control   : std_logic_vector(14 downto 0);
-  
+ 
+  --Forwarding: -- Essentially, two data wires. 
+  signal  s_ID_fwd_RS_sel    : std_logic_vector(N-1 downto 0);
+  signal s_ID_fwd_RT_sel      : std_logic_vector(N-1 downto 0); 
+  signal s_ID_fwd_data1   : std_logic_vector(N-1 downto 0);
+  signal s_ID_fwd_data2   : std_logic_vector(N-1 downto 0); 
+-- flush or:
+  signal s_ID_flush   : std_logic_vector(N-1 downto 0); 
+
   --EX Stage: 
     --General --- 
     signal s_EX_PC              :  std_logic_vector(N-1 downto 0); 
-    singal s_EX_instr           : std_logic_vector(N-1 downto 0); 
    --Addresses/I-type:---
     signal s_EX_jumpAddr        : std_logic_vector(N-1 downto 0); 
     signal s_EX_imm32           : std_logic_vector(N-1 downto 0); 
@@ -95,7 +109,6 @@ architecture structure of MIPS_Processor is
     signal s_EX_iRD             : std_logic_vector(4 downto 0); 
     signal s_EX_reg_RS          : std_logic_vector(N-1 downto 0); 
     signal s_EX_reg_RT          : std_logic_vector(N-1 downto 0); 
-    signal s_EX_reg_jal         : std_logic_vector(4 downto 0); 
     signal s_EX_reg_Wr          : std_logic_vector(4 downto 0);
     --ALU Stuff: 
     signal s_EX_ALU_Src         : std_logic; 
@@ -116,7 +129,7 @@ architecture structure of MIPS_Processor is
     signal s_EX_control_jal     : std_logic;
     signal s_EX_control_memToReg  : std_logic;
     signal s_EX_control_DMem_WR   : std_logic; 
-    signal s_EX_control_bramch    : std_logic; 
+    signal s_EX_control_branch    : std_logic; 
     signal s_EX_control_dst       : std_logic; 
     signal s_EX_control_halt      : std_logic; 
     signal s_EX_control_regWr     : std_logic;
@@ -130,7 +143,7 @@ architecture structure of MIPS_Processor is
     signal s_MEM_jumpAddr       : std_logic_vector(N-1 downto 0); 
     signal s_MEM_branchAddr     : std_logic_vector(N-1 downto 0); 
     --Register Stuff: 
-    signal s_MEM_reg_Wr         : std_logic_vector(4 downto 0); 
+    signal s_MEM_reg_WR         : std_logic_vector(4 downto 0); 
     signal s_MEM_reg_RD         : std_logic_vector(N-1 downto 0); 
     --ALU Stuff:
     signal s_MEM_ALU_out        : std_logic_vector(N-1 downto 0); 
@@ -358,33 +371,34 @@ end component;
 
 --ID/EX Stage: ------------------------------------------1
 component reg_ID_EX is 
-   port(i_CLK          : in std_logic; 
+  generic(N : integer := 32); 
+  port(i_CLK          : in std_logic; 
        i_RST          : in std_logic; 
        i_WE           : in std_logic; 
        -----VECTOR Feed-in: -----0
        i_PC           : in std_logic_vector(N-1 downto 0); 
        i_RS           : in std_logic_vector(N-1 downto 0); 
        i_RT           : in std_logic_vector(N-1 downto 0); 
-       i_opCode       : in std_logic_vector(5 downto 0);
-       i_funct        : in std_logic_vector(5 downto 0);  
-       i_jumpAddr     : in std_logic_vector(N-1 downto 0);
-       i_halt         : in std_logic; 
+       i_opcode       : in std_logic_vector(5 downto 0);
+       i_funct        : in std_logic_vector(5 downto 0);
+       i_control       : in std_logic_vector(14 downto 0);    
+       i_jumpAddr     : in std_logic_vector(N-1 downto 0); 
        i_signExt      : in std_logic_vector(N-1 downto 0); 
-       i_inst15to11   : in std_logic_vector(4 downto 0); 
-       i_inst 20to16  : in std_logic_vector(4 downto 0); 
+       i_reg_DST      : in std_logic_vector(4 downto 0); 
+       i_instr        : in std_logic_vector(N-1 downto 0); 
        --Vector Out Feed ---------1
        o_PC           : out std_logic_vector(N-1 downto 0); 
        o_RS           : out std_logic_vector(N-1 downto 0); 
        o_RT           : out std_logic_vector(N-1 downto 0);
-       o_opCode       : out std_logic_vector(5 downto 0);
+       o_opcode       : out std_logic_vector(5 downto 0);
        o_funct        : out std_logic_vector(5 downto 0);
-       o_halt         : out std_logic;    
+       o_control      : out std_logic_vector(14 downto 0);     
        o_jumpAddr     : out std_logic_vector(N-1 downto 0); 
        o_signExt      : out std_logic_vector(N-1 downto 0); 
-       o_inst15to11   : out std_logic_vector(4 downto 0); 
-       o_inst20to16   : out std_logic_vector(4 downto 0));
-end component; 
+       o_reg_DST      : out std_logic_vector(4 downto 0); 
+       o_instr        : out std_logic_vector(N-1 downto 0); );
 
+end component; 
 --EX/MEM Stage: ---------------------------------------------1
 component reg_EX_MEM is
   port(i_CLK          : in std_logic; 
@@ -432,7 +446,7 @@ end component;
 --MEM/WB Stage: 
 component reg_MEM_WB is
   port(i_CLK          : in std_logic; 
-       i_RST          : in std_logic; //(1 resets the register)
+       i_RST          : in std_logic; 
        i_WE           : in std_logic; 
        --one bit feed ins 
        i_overflow     : in std_logic; 
@@ -465,6 +479,46 @@ component reg_MEM_WB is
        o_readData     : out std_logic_vector(N-1 downto 0); 
        o_writeReg     : out std_logic_vector(4 downto 0));
 end component; 
+
+--- Hardware Componenets ---
+component hazard_unit is
+  port(--Read Hazards: 
+      i_reg_read_RS       : in std_logic_vector(4 downto 0); 
+      i_reg_read_RT       : in std_logic_vector(4 downto 0); 
+  -----ID Stage;
+      i_ID_jump          : in std_loigc; 
+      i_ID_branch        : in std_logic; 
+      i_ID_writeAddr     : in std_logic_vector(4 downto 0); -- Write Hazard ---- ID
+      i_ID_writeEN       : in std_logic;                    -- Write hazard ---- ID
+      -----EX Stage; 
+      i_EX_jump          : in std_logic;
+      i_EX_branch        : in std_logic; 
+      i_EX_writeAddr     : in std_logic_vector(4 downto 0); -- Write Hazard ---- EX
+      i_EX_writeEN       : in std_logic;                    -- Write Hazard ---- EX
+      ----MEM Stage;
+      i_MEM_jump          : in std_logic; 
+      i_MEM_branch        : in std_logic; 
+      ---WB Stage; 
+      i_WB_jump           : in std_logic; 
+      i_WB_branch         : in std_logic; 
+      --STALL 
+      o_stall             : out std_logic);                   -- Outputs stall signal
+      o_flush
+
+end component; 
+
+component ForwardingUnit is
+  port(
+		i_RS				    : in std_logic_vector(4 downto 0);
+		i_RT				    : in std_logic_vector(4 downto 0);
+		i_EXMEM_RD			: in std_logic_vector(4 downto 0);
+		i_MEMWB_RD			: in std_logic_vector(4 downto 0);
+		i_EXMEM_regwr		: in std_logic;
+		i_MEMWB_regWr		: in std_logic;
+		o_RS_select			: out std_logic;
+		o_RT_select			: out std_logic);
+end component;
+
  ---------------------------------------------------------------------------------------------------------------------
  ------------------------IF STAGE-------------------------------------------------------------------------------------
  --------------------------------------------------------------------------------------------------------------------
@@ -497,12 +551,53 @@ begin
           oSum			  =>  s_IF_PC, 
           oCarry			=>  s_x); 
 
+  g_hazard:  hazard_unit 
+  port(--Read Hazards: 
+      i_reg_read_RS      => s_ID_instr(25 downto 21);  
+      i_reg_read_RT      => s_ID_instr(20 downto 16); 
+  -----ID Stage;
+      i_ID_jump          => s_ID_control(4), 
+      i_ID_branch        => s_ID_control(6),
+      i_ID_writeAddr     => s_ID_RegWr,
+      i_ID_writeEN       => s_ID_control(9),                    
+      -----EX Stage; 
+      i_EX_jump          => s_EX_control(4)
+      i_EX_branch        => s_EX_control(6) 
+      i_EX_writeAddr     => s_EX_reg_Wr,
+      i_EX_writeEN       => s_EX_control_regWr,
+      ----MEM Stage;
+      i_MEM_jump         => s_MEM_control_j, 
+      i_MEM_branch       => s_MEM_control_branch,
+      ---WB Stage; 
+      i_WB_jump          => s_WB_control_jump,
+      i_WB_branch        => s_WB_control_zero,
+      --STALL 
+      o_stall            => s_IF_stall,
+      o_flush           => s_IF_flush); 
+
+end component; 
+
+g_Stall_addr  :  : mux2t1_N
+  port map(
+            i_S      => s_IF_stall,     
+            i_D0     => s_IF_PC,  
+            i_D1     => s_IMemAddr,   
+            o_O      => s_IF_stalled_Addr;
+  
+g_Stall_instr  :  : mux2t1_N
+  port map(
+            i_S      => s_IF_stall,     
+            i_D0     => s_IF_instr,   
+            i_D1     => x"00000000",   
+            o_O      => s_IF_stalled_instr);
+
+
   g_IF_ID : reg_IF_ID 
       port map(i_CLK          => iCLK,
               i_RST           => iRST,  
               i_WE            => '1',  
               i_PC            => s_IF_PC,  
-              i_instr         => s_Inst,  
+              i_instr         => s_IF_stalled_instr,  
               o_PC            => s_ID_PC,  
               o_instr         => s_ID_instr); 
 
@@ -547,24 +642,55 @@ begin
 		  MemWr			    => s_ID_control(7), 
 		  Branch			  => s_ID_control(6) 
 		  BEQ           => s_ID_control(5), 
-		  jump			    => s_ID_control(4 downto 3), 
-		  ALUop			    => s_ID_control(2 downto 0)); 
+		  jump			    => s_ID_control(4), 
+		  ALUop			    => s_ID_control(3 downto 0)); 
+
+
+
+    g_FU:  ForwardingUnit 
+      port(
+		    i_RS				      => s_ID_instr(25 downto 21), 
+		    i_RT				      => s_ID_instr(20 downto 16),  
+		    i_EXMEM_RD			  => s_RegWrAddr
+		    i_MEMWB_RD			  => s_MEM_reg_WR
+		    i_EXMEM_regwr		  => s_ID_control() --?
+		    i_MEMWB_regWr		  => s_MEM_reg_WR, ---? 
+		    o_RS_select			 => s_ID_fwd_RS_sel,
+		    o_RT_select			 => s_ID_fwd_RT_sel);
 
   g_regFile : regFile
     port map (iCLK        	  => iCLK,      -- Clock input
-        iRST        	  => iRST,      -- Reset input
-        iWRN        	  => s_RegWrAddr,     
-        iWE	    	      => s_ID_control(9),  
-        iWD          	  => s_RegWrData,    
-        iDP0	     	    => s_ID_instr(25 downto 0), 
-        iDP1	      	  => s_ID_instr(20 downto 0),  
-        oDP0	      	  => s_ID_reg_RS,  
-        oDP1          	=> s_ID_reg_RT); 
+            iRST        	  => iRST,      -- Reset input
+            iWRN        	  => s_RegWrAddr,     
+             iWE	    	      => s_ID_control(9),  
+            iWD          	  => s_RegWrData,    
+            iDP0	     	    => s_ID_instr(25 downto 0), 
+            iDP1	      	  => s_ID_instr(20 downto 0),  
+            oDP0	      	  => s_ID_reg_RS,  
+            oDP1          	=> s_ID_reg_RT); 
 
   g_signExtend: extend16t32
 	  port map(i_S      => s_ID_extend,    
               i_A      => s_ID_imm16,  
               o_O      => s_ID_imm32);
+
+       g_reg_DST : mux2t1_N
+        generic map(N => 5)
+      port map(
+          i_S      => s_ID_control(14),    
+          i_D0     => s_ID_instr(20 downto 16), 
+          i_D1     => "11111",  
+          o_O      => s_ID_reg_dst);      
+
+    g_reg_DST : mux2t1_N
+        generic map(N => 5)
+      port map(
+          i_S      => s_ID_control(13),   
+          i_D0     => s_ID_reg_dst, 
+          i_D1     => s_ID_instr(15 downto 11),  
+          o_O      => s_ID_RegWr);
+
+  
 
   -- in the event of a jump, we extend from 26 to 28 bits:  
   s_ID_jumpAddr(0) <= '0';
@@ -576,36 +702,48 @@ begin
   s_EX_immj(1)           <= '0';
   s_EX_immj(0)           <= '0';
 
+  g_fwd_RS  :  : mux2t1_N
+  port map(
+            i_S      => s_ID_fwd_RS_sel,     
+            i_D0     => s_ID_reg_RS,  
+            i_D1     => s_RegWrData,   
+            o_O      => s_ID_fwd_data1);
+
+
+  g_fwd_RT :  : mux2t1_N
+  port map(
+            i_S      => s_ID_fwd_RT_sel,     
+            i_D0     => s_ID_reg_RT,  
+            i_D1     => s_RegWrData,   
+            o_O      => s_ID_fwd_data2);
+
   g_ID_EX: reg_ID_EX
     port(i_CLK            => iCLK, 
           i_RST           => iRST,  
           i_WE            => '1',  
       -----VECTOR Feed-in: -----0
           i_PC            => s_ID_PC,  
-          i_RS            => s_ID_reg_RS, 
-          i_RT            => s_ID_reg_RT,  
+          i_RS            => s_ID_fwd_data1, 
+          i_RT            => s_ID_fwd_data2,  
           i_control       => s_ID_control,
           i_halt          => s_ID_Halt,
-          i_funct         => s_ID_funct, 
+          i_funct         => s_ID_funct,
+          i_reg_DST       => s_ID_RegWr,  
           i_opCode        => s_ID_opCode,      
           i_jumpAddr      => s_ID_jumpAddr,  
           i_signExt       => s_ID_imm32,  
-          i_inst15to11    => s_ID_instr(20 downto 16),  
-          i_inst20to16    => s_ID_instr(15 downto 11),
-          i_instr         => s_ID_instr, 
       --Vector Out Feed ---------1
           o_PC            => s_EX_PC,  
           o_RS            => s_EX_reg_RS,  
           o_RT            => s_EX_reg_RT, 
           i_funct         => s_EX_funct, 
+          o_reg_DST       => s_EX_reg_Wr
           o_opCode         => s_EX_opCode, 
           o_control       => s_EX_control,
           o_halt          => s_EX_control_halt,       
           o_jumpAddr      => s_EX_jumpAdr, 
           o_signExt       => s_EX_imm32,  
-          o_inst15to11    => s_EX_iRT, 
-          o_inst20to16    => s_EX_iRD
-          o_instr         => s_EX_instr);
+
  ---------------------------------------------------------------------------------------------------------------------
  ------------------------EX STAGE-------------------------------------------------------------------------------------
  --------------------------------------------------------------------------------------------------------------------
@@ -616,39 +754,23 @@ begin
       s_EX_control_memToReg   <= s_EX_control(10);
       s_EX_control_regWr      <= s_EX_control(9);
       s_EX_control_DMem_WR    <= s_EX_control(8);
-      s_EX_control_bramch     <= s_EX_control(6); 
+      s_EX_control_branch     <= s_EX_control(6); 
       s_EX_control_j          <= s_EX_control(4 downto 3);
       s_EX_ALU_OP             <= s_EX_control(2 downto 0); 
 
-  -- Branch Calculation: 
-      g_branchOffset  :  AddSub_N  
-          port map (iA			    =>  s_EX_PC,    	
-                    iB			    =>  s_EX_imm_mux,	
-                    nAdd_Sub		=>  '0', 
-                    oSum			  =>  s_EX_branchAddr, 
-                    oCarry			=>  s_x); 
-    -- ALU Bits: 
-    s_EX_ALU_shamt            <= s_EX_imm32(10 downto 6); 
-    
-    -- Jump mux 
-      g_jump_mux2t1   : mux2t1_N
-      port map(
-                  i_S      => s_EX_control_j(1),    
-                  i_D0     => s_EX_jumpAddr, 
-                  i_D1     => s_EX_reg_RS,  
-                  o_O      => s_EX_jumpAddr_final);
 
     -- ALU Operation:
-   g_ALUSrc  : mux2t1_N
-   port map(
-               i_S      => s_EX_ALU_Src,    
-               i_D0     => s_EX_reg_RT, 
-               i_D1     => s_EX_imm32,  
-               o_O      => s_EX_imm_mux);
-
-    g_ALUcontrol: ALUControl
+    Mux_regFileToALU: mux4t1
+       port map(i_S => s_EX_ALU_Src,
+      	i_R0 => s_EX_reg_RT,
+	      i_R1 => s_EX_imm32, 
+      	i_R2 => s_EX_ALU_repl,
+      	i_R3 => x"00000000",
+      	o_Y => s_EX_imm_mux);
+    
+        g_ALUcontrol: ALUControl
       port map(
-              func		  => s_EX_funct,
+              func		=> s_EX_funct,
               opCode		=> s_EX_opcode,
               logicCTL	=> s_EX_logicCtrl,
               arithCtl	=> s_EX_arithCtl,
@@ -668,21 +790,15 @@ begin
           o_Zero			 => s_EX_ALU_zero, 
           o_ALUOUT		 => s_EX_ALU_out); 
 
-     g_reg_DST : mux2t1_N
-        generic map(N => 5)
-      port map(
-          i_S      => s_EX_control_jal,    
-          i_D0     => s_EX_iRT 
-          i_D1     => "11111",  
-          o_O      => s_EX_reg_jal);      
+    replext: extend8t32
+      port map(i_S          =>  s_ID_extend,
+       i_A         =>  s_Insts_EX_instr(23 downto 16),
+       o_O          =>  s_EX_ALU_replExt);
 
-    g_reg_DST1 : mux2t1_N
-        generic map(N => 5)
-      port map(
-          i_S      => s_EX_control_dst,    
-          i_D0     => s_EX_reg_jal, 
-          i_D1     => s_EX_iRD,  
-          o_O      => s_EX_reg_Wr);
+  repl8t32: replqbg
+    port map(i_A          => s_EX_ALU_replExt,
+             o_F          => s_EX_ALU_repl);
+
 
       g_EX_MEM    : reg_EX_MEM
           port map(i_CLK          => iCLK,  
@@ -769,8 +885,6 @@ g_MEM_WB : reg_MEM_WB
           o_ALU_out     => s_WB_ALU_out,  
           o_readData    => s_WB_reg_RED,  
           o_writeReg    => s_RegWrAddr); 
-
-
 ---------------------------------------------------------------------------------------------------------------------
 ------------------------WB STAGE-------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------------------
@@ -792,7 +906,7 @@ g_memToReg : mux2t1_N
 g_branch : mux2t1_N
     port map(
       i_S      => s_WB_control_zero,    
-      i_D0     => s_IF_PC, 
+      i_D0     => s_IF_stalled_Addr, 
       i_D1     => s_WB_branchAddr,  
       o_O      => s_WB_PC_input);
 
