@@ -651,10 +651,10 @@ g_Stall_instr  :  : mux2t1_N
       port(
 		    i_RS				      => s_ID_instr(25 downto 21), 
 		    i_RT				      => s_ID_instr(20 downto 16),  
-		    i_EXMEM_RD			  => s_RegWrAddr
-		    i_MEMWB_RD			  => s_MEM_reg_WR
-		    i_EXMEM_regwr		  => s_ID_control() --?
-		    i_MEMWB_regWr		  => s_MEM_reg_WR, ---? 
+		    i_EXMEM_RD			  => s_RegWrAddr,
+		    i_MEMWB_RD			  => s_MEM_reg_WR,
+		    i_EXMEM_regwr		  => s_EX_control(9),
+		    i_MEMWB_regWr		  => s_MEM_control_regWr, 
 		    o_RS_select			 => s_ID_fwd_RS_sel,
 		    o_RT_select			 => s_ID_fwd_RT_sel);
 
