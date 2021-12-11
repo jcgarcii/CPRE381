@@ -64,7 +64,8 @@ architecture structure of MIPS_Processor is
  signal s_IF_stalled_Addr : std_logic_Vector(N-1 downto 0);
  signal s_IF_stalled_instr : std_logic_Vector(N-1 downto 0);  
  signal s_IF_stall      : std_logic;
- signal s_IF_flush      : std_logic; 
+ signal s_IF_flush      : std_logic;
+ signal s_IF_reset      : std_logic;  
 
   ---ID Stage: 
       -- General-- 
@@ -92,7 +93,8 @@ architecture structure of MIPS_Processor is
   signal s_ID_fwd_data1   : std_logic_vector(N-1 downto 0);
   signal s_ID_fwd_data2   : std_logic_vector(N-1 downto 0); 
 -- flush or:
-  signal s_ID_flush   : std_logic_vector(N-1 downto 0); 
+signal s_ID_flush      : std_logic;
+signal s_ID_reset      : std_logic; 
 
   --EX Stage: 
     --General --- 
@@ -157,7 +159,11 @@ architecture structure of MIPS_Processor is
     signal s_MEM_control_regWr    : std_logic; 
     signal s_MEM_control_branch   : std_logic; 
     signal s_MEM_control_halt     : std_logic; 
-    signal s_MEM_control_zero     : std_logic;    
+    signal s_MEM_control_zero     : std_logic;  
+    
+    --FLUSH :
+    signal s_MEM_flush      : std_logic;
+  signal s_MEM_reset      : std_logic; 
 
   --WB Stage:
     --General:
@@ -217,6 +223,15 @@ component regFile is
        iDP1	      	  : in std_logic_vector(4 downto 0); 
        oDP0	      	  : out std_logic_vector(31 downto 0); 
        oDP1          	: out std_logic_vector(31 downto 0)); 
+
+end component;
+
+
+component org2 is
+
+  port(i_A          : in std_logic;
+       i_B          : in std_logic;
+       o_F          : out std_logic);
 
 end component;
 
@@ -577,6 +592,11 @@ begin
 
 end component; 
 
+g_OR_IF_ID_flush :  org2 
+port map(i_A         => iRST, 
+       i_B           => s_IF_flush,
+       o_F           => s_IF_reset);
+
 g_Stall_addr  :  : mux2t1_N
   port map(
             i_S      => s_IF_stall,     
@@ -591,10 +611,12 @@ g_Stall_instr  :  : mux2t1_N
             i_D1     => x"00000000",   
             o_O      => s_IF_stalled_instr);
 
+    
+
 
   g_IF_ID : reg_IF_ID 
       port map(i_CLK          => iCLK,
-              i_RST           => iRST,  
+              i_RST           => s_IF_reset,  
               i_WE            => '1',  
               i_PC            => s_IF_PC,  
               i_instr         => s_IF_stalled_instr,  
@@ -717,9 +739,16 @@ g_Stall_instr  :  : mux2t1_N
             i_D1     => s_RegWrData,   
             o_O      => s_ID_fwd_data2);
 
+
+
+  g_OR_ID_EX_flush :  org2 
+      port map(i_A          => iRST, 
+               i_B           => s_ID_flush,
+              o_F           => s_ID_reset);          
+
   g_ID_EX: reg_ID_EX
     port(i_CLK            => iCLK, 
-          i_RST           => iRST,  
+          i_RST           => s_ID_reset,  
           i_WE            => '1',  
       -----VECTOR Feed-in: -----0
           i_PC            => s_ID_PC,  
@@ -800,9 +829,15 @@ g_Stall_instr  :  : mux2t1_N
              o_F          => s_EX_ALU_repl);
 
 
+    g_OR_EX_MEM_flush :  org2 
+      port map(i_A          => iRST, 
+               i_B           => s_MEM_flush,
+              o_F           => s_MEM_reset);  
+
+
       g_EX_MEM    : reg_EX_MEM
           port map(i_CLK          => iCLK,  
-            i_RST                 => iRST, 
+            i_RST                 => s_MEM_reset, 
             i_WE                  => '1',  
             --one bit feed ins 
             i_overflow            => s_EX_ALU_OF,  
@@ -851,9 +886,15 @@ port map(clk  => iCLK,
          we   => s_DMemWr,
          q    => s_DMemOut);
 
+ g_OR_MEM_WB_flush :  org2 
+      port map(i_A          => iRST, 
+               i_B           => s_WB_flush,
+              o_F           => s_WB_reset);  
+
+
 g_MEM_WB : reg_MEM_WB
   port map(i_CLK          => iCLK, 
-          i_RST           => iRST, 
+          i_RST           => s_WB_reset, 
           i_WE            => '1',  
           --one bit feed ins 
           i_overflow     => s_MEM_ALU_OF,  

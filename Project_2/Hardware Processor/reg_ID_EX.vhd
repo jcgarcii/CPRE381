@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------
--- Jose Carlos Garcia
--- CPR E 381 - Project 2
--- Iowa State University
+-- Jose Carlos Garcia --
+-- CPR E 381 - Project 2 --
+-- Iowa State University --
 -------------------------------------------------------------------------
 library IEEE; 
 use IEEE.std_logic_1164.all; 
