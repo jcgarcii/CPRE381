@@ -553,7 +553,7 @@ begin
     port map (iCLK        	  => iCLK,      -- Clock input
         iRST        	  => iRST,      -- Reset input
         iWRN        	  => s_RegWrAddr,     
-        iWE	    	      => s_ID_control(9),  
+        iWE	    	      => s_RegWr,  
         iWD          	  => s_RegWrData,    
         iDP0	     	    => s_ID_instr(25 downto 0), 
         iDP1	      	  => s_ID_instr(20 downto 0),  
@@ -807,6 +807,7 @@ g_jump : mux2t1_N
       o_O      => s_WB_PC_next); 
       
 oALUOut <= s_WB_ALU_out; 
+s_Halt <= s_WB_control_halt; 
 
 end structure;
 

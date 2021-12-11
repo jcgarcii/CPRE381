@@ -918,5 +918,6 @@ g_jump : mux2t1_N
       o_O      => s_WB_PC_next); 
       
 oALUOut <= s_WB_ALU_out; 
+s_Halt <= s_WB_control_halt; 
 
 end structure;
